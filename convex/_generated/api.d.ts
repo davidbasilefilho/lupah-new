@@ -8,6 +8,9 @@
  * @module
  */
 
+import type * as admin from "../admin.js";
+import type * as lib_crypto from "../lib/crypto.js";
+import type * as students from "../students.js";
 import type * as todos from "../todos.js";
 
 import type {
@@ -25,6 +28,9 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  admin: typeof admin;
+  "lib/crypto": typeof lib_crypto;
+  students: typeof students;
   todos: typeof todos;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
