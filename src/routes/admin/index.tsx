@@ -1,8 +1,19 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { useUser } from "@clerk/clerk-react";
 import { useQuery } from "@tanstack/react-query";
-import { useConvex } from "@convex-dev/react-query";
-import { useAuth, UserButton } from "@clerk/clerk-react";
-import { api } from "../../../convex/_generated/api";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+	Activity,
+	Award,
+	CheckCircle2,
+	FileText,
+	FolderOpen,
+	GraduationCap,
+	UserPlus,
+	Users,
+	XCircle,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -10,7 +21,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
 	Table,
 	TableBody,
@@ -19,60 +29,38 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import {
-	Users,
-	FileText,
-	Activity,
-	GraduationCap,
-	UserPlus,
-	FolderOpen,
-	CheckCircle2,
-	XCircle,
-	Award,
-} from "lucide-react";
-import { useEffect } from "react";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { getAllStudents, getDashboardStats } from "@/server/convex";
 
 export const Route = createFileRoute("/admin/")({
 	component: AdminDashboard,
 });
 
 function AdminDashboard() {
-	const { isSignedIn, isLoaded } = useAuth();
-	const convex = useConvex();
+	const { isSignedIn, isLoaded, isAdmin, getClerkToken } = useAdminAuth();
+	const { user } = useUser();
 
-	const { data: adminStatus, isLoading: isCheckingAdmin } = useQuery({
-		queryKey: ["adminStatus"],
-		queryFn: async () => {
-			if (!isSignedIn) return null;
-			return await convex.query(api.admin.checkAdminStatus, {});
-		},
-		enabled: isSignedIn && isLoaded,
-	});
-
+	// Fetch dashboard stats
 	const { data: stats } = useQuery({
 		queryKey: ["dashboardStats"],
 		queryFn: async () => {
-			return await convex.query(api.admin.getDashboardStats, {});
+			const clerkToken = await getClerkToken();
+			return await getDashboardStats({ data: { clerkToken } });
 		},
-		enabled: isSignedIn && adminStatus?.isAdmin,
+		enabled: isSignedIn && isAdmin,
 	});
 
+	// Fetch all students
 	const { data: students } = useQuery({
 		queryKey: ["allStudents"],
 		queryFn: async () => {
-			return await convex.query(api.admin.getAllStudents, {});
+			const clerkToken = await getClerkToken();
+			return await getAllStudents({ data: { clerkToken } });
 		},
-		enabled: isSignedIn && adminStatus?.isAdmin,
+		enabled: isSignedIn && isAdmin,
 	});
 
-	useEffect(() => {
-		if (isLoaded && !isSignedIn) {
-			window.location.href = "/admin/login";
-		}
-	}, [isSignedIn, isLoaded]);
-
-	if (!isLoaded || isCheckingAdmin) {
+	if (!isLoaded) {
 		return (
 			<div className="min-h-screen bg-background flex items-center justify-center">
 				<p className="text-muted-foreground">Carregando...</p>
@@ -84,9 +72,9 @@ function AdminDashboard() {
 		return null;
 	}
 
-	if (!adminStatus?.isAdmin) {
+	if (!isAdmin) {
 		return (
-			<div className="min-h-screen bg-background flex items-center justify-center p-4">
+			<div className="bg-background flex items-center justify-center p-4 pt-12">
 				<Card className="max-w-md">
 					<CardHeader>
 						<CardTitle className="flex items-center gap-2 text-destructive">
@@ -100,6 +88,7 @@ function AdminDashboard() {
 					<CardContent>
 						<p className="text-sm text-muted-foreground mb-4">
 							Entre em contato com o administrador do sistema para obter acesso.
+							Seu usuário precisa ter role: "admin" no Clerk metadata.
 						</p>
 						<Button
 							variant="outline"
@@ -145,27 +134,13 @@ function AdminDashboard() {
 
 	return (
 		<div className="min-h-screen bg-background">
-			<div className="border-b">
-				<div className="container mx-auto px-4 py-4">
-					<div className="flex items-center justify-between">
-						<div>
-							<h1 className="text-2xl font-bold">Painel Administrativo</h1>
-							<p className="text-sm text-muted-foreground">
-								Bem-vindo(a),{" "}
-								{adminStatus.user?.name || adminStatus.user?.email}
-							</p>
-						</div>
-						<div className="flex items-center gap-4">
-							<Button variant="outline" asChild>
-								<Link to="/">Ver Site</Link>
-							</Button>
-							<UserButton afterSignOutUrl="/admin/login" />
-						</div>
-					</div>
-				</div>
-			</div>
-
 			<main className="container mx-auto px-4 py-8">
+				<div className="mb-8">
+					<h1 className="text-3xl font-bold">Painel administrativo</h1>
+					<p className="text-muted-foreground mt-1">
+						Bem-vindo(a), {user?.primaryEmailAddress?.emailAddress}
+					</p>
+				</div>
 				{/* Statistics Cards */}
 				{stats && (
 					<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
@@ -238,16 +213,16 @@ function AdminDashboard() {
 					<CardHeader>
 						<div className="flex items-center justify-between">
 							<div>
-								<CardTitle>Gerenciar Alunos</CardTitle>
+								<CardTitle>Gerenciar alunos</CardTitle>
 								<CardDescription>
 									Visualize e edite informações dos alunos
 								</CardDescription>
 							</div>
-							<Button
-								onClick={() => alert("Funcionalidade em desenvolvimento")}
-							>
-								<UserPlus className="h-4 w-4 mr-2" />
-								Novo Aluno
+							<Button asChild>
+								<Link to="/admin/new">
+									<UserPlus className="h-4 w-4 mr-2" />
+									Novo aluno
+								</Link>
 							</Button>
 						</div>
 					</CardHeader>
@@ -311,12 +286,11 @@ function AdminDashboard() {
 								<p className="text-muted-foreground">
 									Nenhum aluno cadastrado ainda.
 								</p>
-								<Button
-									className="mt-4"
-									onClick={() => alert("Funcionalidade em desenvolvimento")}
-								>
-									<UserPlus className="h-4 w-4 mr-2" />
-									Cadastrar Primeiro Aluno
+								<Button className="mt-4" asChild>
+									<Link to="/admin/new">
+										<UserPlus className="h-4 w-4 mr-2" />
+										Cadastrar primeiro aluno
+									</Link>
 								</Button>
 							</div>
 						)}

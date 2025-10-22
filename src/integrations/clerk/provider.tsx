@@ -1,4 +1,5 @@
 import { ClerkProvider } from "@clerk/clerk-react";
+import { shadcn } from "@clerk/themes";
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 if (!PUBLISHABLE_KEY) {
@@ -11,7 +12,11 @@ export default function AppClerkProvider({
 	children: React.ReactNode;
 }) {
 	return (
-		<ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
+		<ClerkProvider
+			appearance={{ baseTheme: shadcn }}
+			publishableKey={PUBLISHABLE_KEY}
+			afterSignOutUrl="/"
+		>
 			{children}
 		</ClerkProvider>
 	);

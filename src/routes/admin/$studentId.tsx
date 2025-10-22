@@ -1,9 +1,27 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useConvex } from "@convex-dev/react-query";
-import { useAuth, UserButton } from "@clerk/clerk-react";
-import { api } from "../../../convex/_generated/api";
+import { UserButton, useUser } from "@clerk/clerk-react";
 import { useForm } from "@tanstack/react-form";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+	ArrowLeft,
+	Brain,
+	CheckCircle2,
+	Clock,
+	Download,
+	FileText,
+	Key,
+	Trash2,
+	Upload,
+} from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
+import {
+	Accordion,
+	AccordionContent,
+	AccordionItem,
+	AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -11,10 +29,8 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
 	Select,
 	SelectContent,
@@ -22,26 +38,18 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import {
-	Accordion,
-	AccordionContent,
-	AccordionItem,
-	AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-	ArrowLeft,
-	Upload,
-	FileText,
-	Trash2,
-	CheckCircle2,
-	Clock,
-	Download,
-	Key,
-	Brain,
-} from "lucide-react";
-import { useEffect, useState, useRef } from "react";
-import type { Id } from "../../../convex/_generated/dataModel";
+	deleteStudentDocument,
+	generateDocumentUploadUrl,
+	getDocumentUrl,
+	getStudentForAdmin,
+	regenerateAccessCode,
+	saveStudentDocument,
+	setCurrentDocument,
+	updateStudent,
+} from "@/server/convex";
 
 export const Route = createFileRoute("/admin/$studentId")({
 	component: EditStudentPage,
@@ -112,9 +120,8 @@ const INTELLIGENCE_TYPES = [
 
 function EditStudentPage() {
 	const { studentId } = Route.useParams();
-	const { isSignedIn, isLoaded } = useAuth();
-	const convex = useConvex();
-	const navigate = useNavigate();
+	const { isSignedIn, isLoaded, isAdmin, getClerkToken } = useAdminAuth();
+	const { user } = useUser();
 	const queryClient = useQueryClient();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -127,23 +134,15 @@ function EditStudentPage() {
 	const pdfFileId = useId();
 	const uploadNotesId = useId();
 
-	const { data: adminStatus } = useQuery({
-		queryKey: ["adminStatus"],
-		queryFn: async () => {
-			if (!isSignedIn) return null;
-			return await convex.query(api.admin.checkAdminStatus, {});
-		},
-		enabled: isSignedIn && isLoaded,
-	});
-
 	const { data: studentData, isLoading } = useQuery({
 		queryKey: ["studentForAdmin", studentId],
 		queryFn: async () => {
-			return await convex.query(api.admin.getStudentForAdmin, {
-				studentId: studentId as Id<"students">,
+			const clerkToken = await getClerkToken();
+			return await getStudentForAdmin({
+				data: { studentId, clerkToken },
 			});
 		},
-		enabled: isSignedIn && adminStatus?.isAdmin,
+		enabled: isSignedIn && isAdmin,
 	});
 
 	useEffect(() => {
@@ -160,11 +159,17 @@ function EditStudentPage() {
 			status?: "active" | "inactive" | "graduated";
 			notes?: string;
 		}) => {
-			return await convex.mutation(api.students.updateStudent, {
-				studentId: studentId as Id<"students">,
-				...values,
-				intelligenceTypes:
-					selectedIntelligences.length > 0 ? selectedIntelligences : undefined,
+			const clerkToken = await getClerkToken();
+			return await updateStudent({
+				data: {
+					studentId,
+					clerkToken,
+					...values,
+					intelligenceTypes:
+						selectedIntelligences.length > 0
+							? selectedIntelligences
+							: undefined,
+				},
 			});
 		},
 		onSuccess: () => {
@@ -177,8 +182,9 @@ function EditStudentPage() {
 
 	const regenerateCodeMutation = useMutation({
 		mutationFn: async () => {
-			return await convex.mutation(api.students.regenerateAccessCode, {
-				studentId: studentId as Id<"students">,
+			const clerkToken = await getClerkToken();
+			return await regenerateAccessCode({
+				data: { studentId, clerkToken },
 			});
 		},
 		onSuccess: (data) => {
@@ -188,10 +194,10 @@ function EditStudentPage() {
 	});
 
 	const setCurrentDocMutation = useMutation({
-		mutationFn: async (documentId: Id<"studentDocuments">) => {
-			return await convex.mutation(api.admin.setCurrentDocument, {
-				documentId,
-				studentId: studentId as Id<"students">,
+		mutationFn: async (documentId: string) => {
+			const clerkToken = await getClerkToken();
+			return await setCurrentDocument({
+				data: { documentId, studentId, clerkToken },
 			});
 		},
 		onSuccess: () => {
@@ -202,9 +208,10 @@ function EditStudentPage() {
 	});
 
 	const deleteDocMutation = useMutation({
-		mutationFn: async (documentId: Id<"studentDocuments">) => {
-			return await convex.mutation(api.students.deleteStudentDocument, {
-				documentId,
+		mutationFn: async (documentId: string) => {
+			const clerkToken = await getClerkToken();
+			return await deleteStudentDocument({
+				data: { documentId, clerkToken },
 			});
 		},
 		onSuccess: () => {
@@ -238,15 +245,16 @@ function EditStudentPage() {
 	}, [studentData, form.setFieldValue]);
 
 	const handleFileUpload = async () => {
-		if (!selectedFile || !adminStatus?.user?.email) return;
+		if (!selectedFile || !user?.primaryEmailAddress?.emailAddress) return;
 
 		setIsUploading(true);
 		try {
+			const clerkToken = await getClerkToken();
+
 			// Step 1: Generate upload URL
-			const uploadUrl = await convex.mutation(
-				api.students.generateDocumentUploadUrl,
-				{},
-			);
+			const uploadUrl = await generateDocumentUploadUrl({
+				data: { clerkToken },
+			});
 
 			// Step 2: Upload file
 			const result = await fetch(uploadUrl, {
@@ -258,13 +266,16 @@ function EditStudentPage() {
 			const { storageId } = await result.json();
 
 			// Step 3: Save document metadata
-			await convex.mutation(api.students.saveStudentDocument, {
-				studentId: studentId as Id<"students">,
-				storageId,
-				fileName: selectedFile.name,
-				fileSize: selectedFile.size,
-				uploadedBy: adminStatus.user.email,
-				notes: uploadNotes || undefined,
+			await saveStudentDocument({
+				data: {
+					studentId,
+					storageId,
+					fileName: selectedFile.name,
+					fileSize: selectedFile.size,
+					uploadedBy: user.primaryEmailAddress.emailAddress,
+					clerkToken,
+					notes: uploadNotes || undefined,
+				},
 			});
 
 			// Clear form
@@ -294,9 +305,9 @@ function EditStudentPage() {
 	};
 
 	const formatFileSize = (bytes: number) => {
-		if (bytes < 1024) return bytes + " B";
-		if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-		return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+		if (bytes < 1024) return `${bytes} B`;
+		if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+		return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 	};
 
 	const formatDate = (dateString: string) => {
@@ -318,7 +329,7 @@ function EditStudentPage() {
 		);
 	}
 
-	if (!isSignedIn || !adminStatus?.isAdmin) {
+	if (!isSignedIn || !isAdmin) {
 		return (
 			<div className="min-h-screen bg-background flex items-center justify-center">
 				<Card>
@@ -326,8 +337,8 @@ function EditStudentPage() {
 						<CardTitle>Acesso Negado</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<Button onClick={() => navigate({ to: "/admin/login" })}>
-							Fazer Login
+						<Button asChild>
+							<Link to="/admin/login">Fazer Login</Link>
 						</Button>
 					</CardContent>
 				</Card>
@@ -367,7 +378,7 @@ function EditStudentPage() {
 								</p>
 							</div>
 						</div>
-						<UserButton afterSignOutUrl="/admin/login" />
+						<UserButton />
 					</div>
 				</div>
 			</div>
@@ -679,12 +690,9 @@ function EditStudentPage() {
 											variant="outline"
 											size="sm"
 											onClick={async () => {
-												const url = await convex.query(
-													api.students.getDocumentUrl,
-													{
-														storageId: currentDocument.storageId,
-													},
-												);
+												const url = await getDocumentUrl({
+													data: { storageId: currentDocument.storageId },
+												});
 												if (url) window.open(url, "_blank");
 											}}
 										>
@@ -762,12 +770,9 @@ function EditStudentPage() {
 																variant="outline"
 																size="sm"
 																onClick={async () => {
-																	const url = await convex.query(
-																		api.students.getDocumentUrl,
-																		{
-																			storageId: doc.storageId,
-																		},
-																	);
+																	const url = await getDocumentUrl({
+																		data: { storageId: doc.storageId },
+																	});
 																	if (url) window.open(url, "_blank");
 																}}
 															>

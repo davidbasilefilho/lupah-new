@@ -1,8 +1,17 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useConvex } from "@convex-dev/react-query";
-import { api } from "../../convex/_generated/api";
-import { useState, useEffect } from "react";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import {
+	Activity,
+	Brain,
+	Calendar,
+	Download,
+	FileText,
+	GraduationCap,
+	LogOut,
+	TrendingUp,
+} from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -10,26 +19,15 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-	GraduationCap,
-	Calendar,
-	TrendingUp,
-	Activity,
-	LogOut,
-	FileText,
-	Download,
-	Brain,
-} from "lucide-react";
+import { getDocumentUrl, getStudent, getStudentStats } from "@/server/convex";
 import type { Id } from "../../convex/_generated/dataModel";
-import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/dashboard")({
 	component: DashboardPage,
 	beforeLoad: () => {
-		// Check if student is logged in
-		const studentData = sessionStorage.getItem("lupahStudent");
-		if (!studentData) {
+		// Simple client-side check if student ID exists
+		const studentId = sessionStorage.getItem("studentId");
+		if (!studentId) {
 			throw redirect({ to: "/" });
 		}
 	},
@@ -109,52 +107,33 @@ const INTELLIGENCE_LABELS: Record<
 };
 
 function DashboardPage() {
-	const [student, setStudent] = useState<Student | null>(null);
-	const [currentDocument, setCurrentDocument] =
-		useState<CurrentDocument | null>(null);
-	const convex = useConvex();
+	const navigate = useNavigate();
+	const [studentId] = useState(() => sessionStorage.getItem("studentId") || "");
 
-	useEffect(() => {
-		const studentData = sessionStorage.getItem("lupahStudent");
-		const documentData = sessionStorage.getItem("lupahCurrentDocument");
+	// Fetch student data using server function
+	const { data: studentData, isLoading } = useQuery({
+		queryKey: ["student", studentId],
+		queryFn: async () => {
+			return await getStudent({ data: { studentId } });
+		},
+		enabled: !!studentId,
+	});
 
-		if (studentData) {
-			const studentObj = JSON.parse(studentData);
-			setStudent(studentObj);
-		}
-
-		if (documentData) {
-			const docObj = JSON.parse(documentData);
-			setCurrentDocument(docObj);
-		}
-	}, []);
-
+	// Fetch student stats using server function
 	const { data: studentStats } = useQuery({
-		queryKey: ["studentStats", student?._id],
+		queryKey: ["studentStats", studentId],
 		queryFn: async () => {
-			if (!student) return null;
-			return await convex.query(api.students.getStudentStats, {
-				studentId: student._id,
-			});
+			return await getStudentStats({ data: { studentId } });
 		},
-		enabled: !!student,
+		enabled: !!studentId,
 	});
 
-	const { data: studentData } = useQuery({
-		queryKey: ["studentData", student?._id],
-		queryFn: async () => {
-			if (!student) return null;
-			return await convex.query(api.students.getStudent, {
-				studentId: student._id,
-			});
-		},
-		enabled: !!student,
-	});
+	const student = studentData?.student || null;
+	const currentDocument = studentData?.currentDocument || null;
 
 	const handleLogout = () => {
-		sessionStorage.removeItem("lupahStudent");
-		sessionStorage.removeItem("lupahCurrentDocument");
-		window.location.href = "/";
+		sessionStorage.removeItem("studentId");
+		navigate({ to: "/" });
 	};
 
 	const calculateAge = (dateOfBirth: string) => {
@@ -181,12 +160,12 @@ function DashboardPage() {
 	};
 
 	const formatFileSize = (bytes: number) => {
-		if (bytes < 1024) return bytes + " B";
-		if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-		return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+		if (bytes < 1024) return `${bytes} B`;
+		if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+		return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 	};
 
-	if (!student) {
+	if (isLoading || !student || !studentData) {
 		return (
 			<div className="container mx-auto px-4 py-12 text-center">
 				<p className="text-muted-foreground">Carregando...</p>
@@ -307,10 +286,10 @@ function DashboardPage() {
 								<Button
 									variant="default"
 									size="sm"
-									onClick={() => {
-										const url = convex.storage.getUrl(
-											currentDocument.storageId,
-										);
+									onClick={async () => {
+										const url = await getDocumentUrl({
+											data: { storageId: currentDocument.storageId },
+										});
 										if (url) window.open(url, "_blank");
 									}}
 								>

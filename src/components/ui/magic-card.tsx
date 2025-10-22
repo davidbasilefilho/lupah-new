@@ -3,7 +3,7 @@ import type React from "react";
 import { useCallback, useEffect } from "react";
 
 import { cn } from "@/lib/utils";
-import { useTheme, ResolvedTheme } from "../theme-provider";
+import { type ResolvedTheme, useTheme } from "../theme-provider";
 
 type GradientOpacityByTheme = Record<ResolvedTheme, number>;
 

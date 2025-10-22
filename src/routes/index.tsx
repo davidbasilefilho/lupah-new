@@ -1,8 +1,6 @@
 /** biome-ignore-all lint/suspicious/noArrayIndexKey: no other relevant property */
 import { useForm } from "@tanstack/react-form";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMutation } from "@tanstack/react-query";
-import { useConvex } from "@convex-dev/react-query";
 import {
 	Archive,
 	Book,
@@ -24,7 +22,6 @@ import {
 import { motion } from "motion/react";
 import { useId, useState } from "react";
 import { z } from "zod";
-import { api } from "../../convex/_generated/api";
 import { Badge } from "@/components/ui/badge";
 import { BentoCard, BentoGrid } from "@/components/ui/bento-grid";
 import { Button } from "@/components/ui/button";
@@ -36,7 +33,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import {
 	InputOTP,
 	InputOTPGroup,
@@ -45,6 +41,7 @@ import {
 } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { MagicCard } from "@/components/ui/magic-card";
+import { validateStudentAccessCode } from "@/server/convex";
 
 export const Route = createFileRoute("/")({
 	component: HomePage,
@@ -57,8 +54,8 @@ function HomePage() {
 	const intelligencesHeadingId = useId();
 	const otpId = useId();
 	const navigate = useNavigate();
-	const convex = useConvex();
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
+	const [_isSubmitting, setIsSubmitting] = useState(false);
 
 	const validators = {
 		code: z
@@ -71,36 +68,34 @@ function HomePage() {
 			}),
 	};
 
-	const validateCodeMutation = useMutation({
-		mutationFn: async (accessCode: string) => {
-			return await convex.mutation(api.students.validateStudentAccessCode, {
-				accessCode,
-			});
-		},
-		onSuccess: (data) => {
-			// Store student data in session storage
-			sessionStorage.setItem("lupahStudent", JSON.stringify(data.student));
-			if (data.currentDocument) {
-				sessionStorage.setItem(
-					"lupahCurrentDocument",
-					JSON.stringify(data.currentDocument),
-				);
-			}
-			// Redirect to dashboard
-			navigate({ to: "/dashboard" });
-		},
-		onError: (error: any) => {
-			setErrorMessage(error.message || "Código inválido. Tente novamente.");
-		},
-	});
-
 	const form = useForm({
 		defaultValues: {
 			code: "",
 		},
 		onSubmit: async ({ value }) => {
 			setErrorMessage(null);
-			validateCodeMutation.mutate(value.code);
+			setIsSubmitting(true);
+
+			try {
+				// Call server function to validate access code (proxy to Convex)
+				const result = await validateStudentAccessCode({
+					data: { accessCode: value.code },
+				});
+
+				if (result.success && result.student) {
+					// Store student ID in sessionStorage for client-side
+					sessionStorage.setItem("studentId", result.student._id);
+					navigate({ to: "/dashboard" });
+				} else {
+					setErrorMessage(result.error || "Código inválido. Tente novamente.");
+				}
+			} catch (error: unknown) {
+				setErrorMessage(
+					error instanceof Error ? error.message : "Erro ao validar código.",
+				);
+			} finally {
+				setIsSubmitting(false);
+			}
 		},
 	});
 
@@ -205,9 +200,12 @@ function HomePage() {
 	const id = useId();
 
 	return (
-		<main id={id}>
+		<main
+			id={id}
+			className="w-full max-w-full sm:max-w-lg md:max-w-5xl lg:max-w-340 mx-auto md:pb-12 md:pt-16 px-4 pb-8 pt-10 lg:px-8"
+		>
 			<section
-				className="relative mx-auto flex flex-wrap md:flex-nowrap justify-between w-full max-w-340 items-center md:items-stretch gap-10 px-4 pb-8 pt-10 md:min-h-112 md:grid-cols-2 md:gap-16 md:pb-12 md:pt-16 lg:px-8"
+				className="relative flex flex-wrap md:flex-nowrap justify-between items-center md:items-stretch gap-6 pb-8 md:pb-12 md:grid-cols-2 md:gap-16"
 				aria-labelledby={heroHeadingId}
 			>
 				<motion.div
@@ -300,7 +298,6 @@ function HomePage() {
 							<CardContent className="p-4 grow w-full">
 								<form
 									id={formId}
-									className="grid gap-6"
 									onSubmit={(e) => {
 										e.preventDefault();
 										e.stopPropagation();
@@ -339,7 +336,7 @@ function HomePage() {
 														))}
 													</InputOTPGroup>
 													<InputOTPSeparator
-														className="mx-2 text-muted-foreground"
+														className="mx-0 sm:mx-1 md:mx-2 text-muted-foreground"
 														aria-hidden
 													/>
 													<InputOTPGroup className="gap-0.5">
@@ -384,14 +381,10 @@ function HomePage() {
 											type="submit"
 											form={formId}
 											className="w-full"
-											disabled={!canSubmit || validateCodeMutation.isPending}
-											aria-disabled={
-												isSubmitting || validateCodeMutation.isPending
-											}
+											disabled={!canSubmit || isSubmitting}
+											aria-disabled={isSubmitting}
 										>
-											{isSubmitting || validateCodeMutation.isPending
-												? "Validando…"
-												: "Acessar Minha Página"}
+											{isSubmitting ? "Validando…" : "Acessar Minha Página"}
 										</Button>
 									)}
 								</form.Subscribe>
@@ -401,10 +394,7 @@ function HomePage() {
 				</motion.div>
 			</section>
 
-			<section
-				className="mx-auto max-w-340 w-full px-4 pb-20 lg:px-8"
-				aria-labelledby={intelligencesHeadingId}
-			>
+			<section aria-labelledby={intelligencesHeadingId}>
 				<div className="flex items-end justify-between">
 					<div>
 						<h2
@@ -421,7 +411,7 @@ function HomePage() {
 				</div>
 
 				<div className="mt-6">
-					<BentoGrid className="grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-auto h-256">
+					<BentoGrid className="grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-auto h-max sm:h-256">
 						{intelligenceTypes.map((item) => (
 							<BentoCard
 								key={item.name}
