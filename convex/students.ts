@@ -1,68 +1,95 @@
 // Convex functions for student data management
 
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import {
-  generateAccessCode,
-  hashAccessCode,
-  isValidAccessCodeFormat,
-  validateAccessCode,
-} from "./lib/crypto";
+import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 
-// Validate student access code and return student data
-export const validateStudentAccessCode = mutation({
+// Internal query to get all students (used by actions)
+export const internalListAllStudents = internalQuery({
+  handler: async (ctx) => {
+    return await ctx.db.query("students").collect();
+  },
+});
+
+// Internal query to get a student by ID (used by actions)
+export const internalGetStudent = internalQuery({
   args: {
-    accessCode: v.string(),
+    studentId: v.id("students"),
   },
   handler: async (ctx, args) => {
-    if (!isValidAccessCodeFormat(args.accessCode)) {
-      throw new Error(
-        "Formato de código inválido. Use 8 caracteres alfanuméricos.",
-      );
-    }
+    return await ctx.db.get(args.studentId);
+  },
+});
 
-    const students = await ctx.db.query("students").collect();
+// Internal query to get current document for a student (used by actions)
+export const internalGetCurrentDocument = internalQuery({
+  args: {
+    studentId: v.id("students"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("studentDocuments")
+      .withIndex("studentId_isCurrent", (q) =>
+        q.eq("studentId", args.studentId).eq("isCurrent", true),
+      )
+      .first();
+  },
+});
 
-    for (const student of students) {
-      const isValid = await validateAccessCode(
-        args.accessCode,
-        student.accessCodeHash,
-      );
+// Internal mutation to create student (used by actions after hashing)
+export const internalCreateStudent = internalMutation({
+  args: {
+    name: v.string(),
+    dateOfBirth: v.string(),
+    enrollmentDate: v.string(),
+    grade: v.string(),
+    status: v.union(
+      v.literal("active"),
+      v.literal("inactive"),
+      v.literal("graduated"),
+    ),
+    notes: v.optional(v.string()),
+    accessCodeHash: v.string(),
+    intelligenceTypes: v.array(
+      v.union(
+        v.literal("logico-matematica"),
+        v.literal("verbo-linguistica"),
+        v.literal("linguagens"),
+        v.literal("espacial"),
+        v.literal("corporal-cinestesica"),
+        v.literal("musical"),
+        v.literal("interpessoal"),
+        v.literal("intrapessoal"),
+        v.literal("naturalista"),
+        v.literal("existencial"),
+        v.literal("memoria"),
+        v.literal("espiritual"),
+      ),
+    ),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("students", {
+      name: args.name,
+      dateOfBirth: args.dateOfBirth,
+      enrollmentDate: args.enrollmentDate,
+      grade: args.grade,
+      status: args.status,
+      notes: args.notes,
+      accessCodeHash: args.accessCodeHash,
+      intelligenceTypes: args.intelligenceTypes,
+    });
+  },
+});
 
-      if (isValid && student.status === "active") {
-        // Get current document
-        const currentDocument = await ctx.db
-          .query("studentDocuments")
-          .withIndex("studentId_isCurrent", (q) =>
-            q.eq("studentId", student._id).eq("isCurrent", true),
-          )
-          .first();
-
-        return {
-          student: {
-            _id: student._id,
-            name: student.name,
-            dateOfBirth: student.dateOfBirth,
-            grade: student.grade,
-            status: student.status,
-            intelligenceTypes: student.intelligenceTypes,
-            notes: student.notes,
-          },
-          currentDocument: currentDocument
-            ? {
-                _id: currentDocument._id,
-                storageId: currentDocument.storageId,
-                fileName: currentDocument.fileName,
-                fileSize: currentDocument.fileSize,
-                uploadDate: currentDocument.uploadDate,
-                notes: currentDocument.notes,
-              }
-            : null,
-        };
-      }
-    }
-
-    throw new Error("Código de acesso inválido ou aluno inativo.");
+// Internal mutation to update access code hash (used by actions)
+export const internalUpdateAccessCode = internalMutation({
+  args: {
+    studentId: v.id("students"),
+    accessCodeHash: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.studentId, {
+      accessCodeHash: args.accessCodeHash,
+    });
   },
 });
 
@@ -159,61 +186,7 @@ export const getStudentActivities = query({
   },
 });
 
-export const createStudent = mutation({
-  args: {
-    name: v.string(),
-    dateOfBirth: v.string(),
-    enrollmentDate: v.string(),
-    grade: v.string(),
-    status: v.optional(
-      v.union(
-        v.literal("active"),
-        v.literal("inactive"),
-        v.literal("graduated"),
-      ),
-    ),
-    notes: v.optional(v.string()),
-    intelligenceTypes: v.optional(
-      v.array(
-        v.union(
-          v.literal("logico-matematica"),
-          v.literal("verbo-linguistica"),
-          v.literal("linguagens"),
-          v.literal("espacial"),
-          v.literal("corporal-cinestesica"),
-          v.literal("musical"),
-          v.literal("interpessoal"),
-          v.literal("intrapessoal"),
-          v.literal("naturalista"),
-          v.literal("existencial"),
-          v.literal("memoria"),
-          v.literal("espiritual"),
-        ),
-      ),
-    ),
-  },
-  handler: async (ctx, args) => {
-    const accessCode = generateAccessCode();
-    const accessCodeHash = await hashAccessCode(accessCode);
-
-    const studentId = await ctx.db.insert("students", {
-      name: args.name,
-      dateOfBirth: args.dateOfBirth,
-      enrollmentDate: args.enrollmentDate,
-      grade: args.grade,
-      status: args.status || "active",
-      notes: args.notes,
-      accessCodeHash,
-      intelligenceTypes: args.intelligenceTypes || [],
-    });
-
-    return {
-      studentId,
-      accessCode,
-      message: "Aluno criado com sucesso.",
-    };
-  },
-});
+// Note: createStudent has been moved to studentActions.ts to use Node.js runtime for bcrypt
 
 export const updateStudent = mutation({
   args: {
@@ -263,30 +236,9 @@ export const updateStudent = mutation({
   },
 });
 
-export const regenerateAccessCode = mutation({
-  args: {
-    studentId: v.id("students"),
-  },
-  handler: async (ctx, args) => {
-    const student = await ctx.db.get(args.studentId);
+// Note: regenerateAccessCode has been moved to studentActions.ts to use Node.js runtime for bcrypt
 
-    if (!student) {
-      throw new Error("Aluno não encontrado.");
-    }
-
-    const newAccessCode = generateAccessCode();
-    const newAccessCodeHash = await hashAccessCode(newAccessCode);
-
-    await ctx.db.patch(args.studentId, {
-      accessCodeHash: newAccessCodeHash,
-    });
-
-    return {
-      accessCode: newAccessCode,
-      message: "Código de acesso regenerado com sucesso.",
-    };
-  },
-});
+// Note: validateStudentAccessCode has been moved to studentActions.ts to use Node.js runtime for bcrypt
 
 export const addProgressReport = mutation({
   args: {

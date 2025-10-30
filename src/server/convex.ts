@@ -10,7 +10,7 @@ function getConvexUrl() {
 	// In server context, try both process.env and import.meta.env
 	const url =
 		process?.env?.VITE_CONVEX_URL ||
-		// @ts-ignore - import.meta.env is available in Vite
+		// @ts-expect-error - import.meta.env is available in Vite
 		import.meta.env?.VITE_CONVEX_URL;
 
 	if (!url) {
@@ -35,8 +35,8 @@ export const validateStudentAccessCode = createServerFn({ method: "POST" })
 	.inputValidator((data: { accessCode: string }) => data)
 	.handler(async ({ data }) => {
 		try {
-			const result = await convex.mutation(
-				api.students.validateStudentAccessCode,
+			const result = await convex.action(
+				api.studentActions.validateStudentAccessCode,
 				{
 					accessCode: data.accessCode,
 				},
@@ -158,8 +158,8 @@ export const regenerateAccessCode = createServerFn({ method: "POST" })
 			throw new Error("Token de autenticação não fornecido");
 		}
 		const authenticatedConvex = getAuthenticatedConvexClient(data.clerkToken);
-		const result = await authenticatedConvex.mutation(
-			api.students.regenerateAccessCode,
+		const result = await authenticatedConvex.action(
+			api.studentActions.regenerateAccessCode,
 			{
 				studentId: data.studentId as Id<"students">,
 			},
@@ -302,8 +302,8 @@ export const createStudent = createServerFn({ method: "POST" })
 			throw new Error("Token de autenticação não fornecido");
 		}
 		const authenticatedConvex = getAuthenticatedConvexClient(data.clerkToken);
-		const result = await authenticatedConvex.mutation(
-			api.students.createStudent,
+		const result = await authenticatedConvex.action(
+			api.studentActions.createStudent,
 			{
 				name: data.name,
 				dateOfBirth: data.dateOfBirth,

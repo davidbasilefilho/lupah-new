@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/suspicious/noArrayIndexKey: no other relevant property */
 import { useForm } from "@tanstack/react-form";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import {
 	Archive,
 	Book,
@@ -53,7 +53,6 @@ function HomePage() {
 	const heroHeadingId = useId();
 	const intelligencesHeadingId = useId();
 	const otpId = useId();
-	const navigate = useNavigate();
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 	const [_isSubmitting, setIsSubmitting] = useState(false);
 
@@ -85,7 +84,7 @@ function HomePage() {
 				if (result.success && result.student) {
 					// Store student ID in sessionStorage for client-side
 					sessionStorage.setItem("studentId", result.student._id);
-					navigate({ to: "/dashboard" });
+					window.location.href = "/dashboard";
 				} else {
 					setErrorMessage(result.error || "Código inválido. Tente novamente.");
 				}
@@ -365,10 +364,10 @@ function HomePage() {
 									</form.Field>
 								</form>
 							</CardContent>
-							<CardFooter className="p-4 flex-col items-start gap-4 border-t border-border">
+							<CardFooter className="p-4 flex-col sm:flex-row items-start sm:items-center gap-4 border-t border-border">
 								<p
 									id={`${formId}-hint`}
-									className="text-muted-foreground text-xs"
+									className="text-muted-foreground text-xs flex-1"
 								>
 									Seus dados são protegidos. Ao acessar, você concorda em manter
 									o sigilo das informações.
@@ -380,7 +379,7 @@ function HomePage() {
 										<Button
 											type="submit"
 											form={formId}
-											className="w-full"
+											className="w-full sm:w-auto"
 											disabled={!canSubmit || isSubmitting}
 											aria-disabled={isSubmitting}
 										>

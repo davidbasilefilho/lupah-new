@@ -32,7 +32,7 @@ function formatDate(date: Date | undefined) {
 		return "";
 	}
 
-	return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+	return format(date, "dd/MM/yyyy", { locale: ptBR });
 }
 
 function isValidDate(date: Date | undefined) {
@@ -40,6 +40,53 @@ function isValidDate(date: Date | undefined) {
 		return false;
 	}
 	return !Number.isNaN(date.getTime());
+}
+
+/**
+ * Format the raw user input into slashes inserted progressively without letter placeholders.
+ *
+ * Behavior:
+ * - 0 digits -> ""
+ * - 1 digit  -> "d" (just the digit)
+ * - 2 digits -> "dd/" (day complete, add trailing slash)
+ * - 3 digits -> "dd/M" (month partial)
+ * - 4 digits -> "dd/MM/" (month complete, add trailing slash for year)
+ * - 5-7 digits -> "dd/MM/yyy..." (partial year, no placeholders)
+ * - >=8 digits -> "dd/MM/yyyy" (use first 8 digits)
+ */
+function formatInputParts(raw: string) {
+	const digits = (raw || "").replace(/\D/g, "");
+	if (digits.length === 0) return "";
+	if (digits.length === 1) {
+		// single digit day
+		return digits;
+	}
+	if (digits.length === 2) {
+		// full day -> show trailing slash to indicate month
+		return `${digits.slice(0, 2)}/`;
+	}
+	if (digits.length > 2 && digits.length < 4) {
+		// day + partial month (no trailing slash)
+		const day = digits.slice(0, 2);
+		const monthPart = digits.slice(2);
+		return `${day}/${monthPart}`;
+	}
+	if (digits.length === 4) {
+		// day + full month -> add trailing slash for year
+		return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/`;
+	}
+	if (digits.length > 4 && digits.length < 8) {
+		// partial year (no placeholders)
+		const day = digits.slice(0, 2);
+		const month = digits.slice(2, 4);
+		const yearPart = digits.slice(4);
+		return `${day}/${month}/${yearPart}`;
+	}
+	// 8 or more digits -> full date using first 8 digits
+	const day = digits.slice(0, 2);
+	const month = digits.slice(2, 4);
+	const year = digits.slice(4, 8);
+	return `${day}/${month}/${year}`;
 }
 
 export function DatePickerWithLabel({
@@ -64,8 +111,8 @@ export function DatePickerWithLabel({
 	}, [value]);
 
 	return (
-		<div className={cn("flex flex-col gap-2", className)}>
-			<Label htmlFor={id} className="px-1">
+		<div className={cn("flex flex-col gap-2 w-fit", className)}>
+			<Label htmlFor={id} className="px-1 w-max">
 				{label}
 				{required && <span className="text-destructive ml-1">*</span>}
 			</Label>
@@ -77,14 +124,32 @@ export function DatePickerWithLabel({
 					className={cn("bg-background pr-10", error && "border-destructive")}
 					disabled={disabled}
 					onChange={(e) => {
-						const newValue = e.target.value;
-						setInputValue(newValue);
+						const raw = e.target.value;
+						// Update visible input with partial formatting (placeholders)
+						const formatted = formatInputParts(raw);
+						setInputValue(formatted);
 
-						// Try to parse the date
-						const parsedDate = new Date(newValue);
-						if (isValidDate(parsedDate)) {
-							onChange?.(parsedDate);
-							setMonth(parsedDate);
+						// Only emit a full date once we have at least 8 digits (ddMMyyyy)
+						const digits = raw.replace(/\D/g, "");
+						if (digits.length >= 8) {
+							const day = Number(digits.slice(0, 2));
+							const month = Number(digits.slice(2, 4));
+							const year = Number(digits.slice(4, 8));
+
+							const parsedDate = new Date(year, month - 1, day);
+
+							// Validate constructed date (and guard against things like 31 Feb)
+							if (
+								isValidDate(parsedDate) &&
+								parsedDate.getFullYear() === year &&
+								parsedDate.getMonth() === month - 1 &&
+								parsedDate.getDate() === day
+							) {
+								onChange?.(parsedDate);
+								setMonth(parsedDate);
+								// normalize display to formatted full date
+								setInputValue(formatDate(parsedDate));
+							}
 						}
 					}}
 					onKeyDown={(e) => {

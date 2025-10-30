@@ -10,6 +10,8 @@
 
 import type * as admin from "../admin.js";
 import type * as lib_crypto from "../lib/crypto.js";
+import type * as lib_cryptoActions from "../lib/cryptoActions.js";
+import type * as studentActions from "../studentActions.js";
 import type * as students from "../students.js";
 import type * as todos from "../todos.js";
 
@@ -30,6 +32,8 @@ import type {
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   "lib/crypto": typeof lib_crypto;
+  "lib/cryptoActions": typeof lib_cryptoActions;
+  studentActions: typeof studentActions;
   students: typeof students;
   todos: typeof todos;
 }>;

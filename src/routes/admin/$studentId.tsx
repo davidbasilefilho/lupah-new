@@ -1,5 +1,6 @@
 import { UserButton, useUser } from "@clerk/clerk-react";
 import { useForm } from "@tanstack/react-form";
+import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
@@ -7,6 +8,7 @@ import {
 	Brain,
 	CheckCircle2,
 	Clock,
+	Copy,
 	Download,
 	FileText,
 	Key,
@@ -29,6 +31,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { DatePickerWithLabel } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -53,6 +56,11 @@ import {
 
 export const Route = createFileRoute("/admin/$studentId")({
 	component: EditStudentPage,
+	validateSearch: (search: Record<string, unknown>) => {
+		return {
+			accessCode: (search.accessCode as string) || undefined,
+		};
+	},
 });
 
 const INTELLIGENCE_TYPES = [
@@ -120,6 +128,7 @@ const INTELLIGENCE_TYPES = [
 
 function EditStudentPage() {
 	const { studentId } = Route.useParams();
+	const { accessCode: urlAccessCode } = Route.useSearch();
 	const { isSignedIn, isLoaded, isAdmin, getClerkToken } = useAdminAuth();
 	const { user } = useUser();
 	const queryClient = useQueryClient();
@@ -131,6 +140,7 @@ function EditStudentPage() {
 		[],
 	);
 	const [accessCode, setAccessCode] = useState<string | null>(null);
+	const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>(undefined);
 	const pdfFileId = useId();
 	const uploadNotesId = useId();
 
@@ -145,9 +155,23 @@ function EditStudentPage() {
 		enabled: isSignedIn && isAdmin,
 	});
 
+	// Set access code from URL immediately when available
+	useEffect(() => {
+		if (urlAccessCode) {
+			setAccessCode(urlAccessCode);
+		}
+	}, [urlAccessCode]);
+
 	useEffect(() => {
 		if (studentData?.student) {
 			setSelectedIntelligences(studentData.student.intelligenceTypes || []);
+			// Parse date of birth
+			if (studentData.student.dateOfBirth) {
+				const [year, month, day] = studentData.student.dateOfBirth
+					.split("-")
+					.map(Number);
+				setDateOfBirth(new Date(year, month - 1, day));
+			}
 		}
 	}, [studentData]);
 
@@ -176,7 +200,7 @@ function EditStudentPage() {
 			queryClient.invalidateQueries({
 				queryKey: ["studentForAdmin", studentId],
 			});
-			alert("Aluno atualizado com sucesso!");
+			toast.success("Aluno atualizado com sucesso!");
 		},
 	});
 
@@ -189,7 +213,7 @@ function EditStudentPage() {
 		},
 		onSuccess: (data) => {
 			setAccessCode(data.accessCode);
-			alert("Código regenerado com sucesso!");
+			toast.success("Código regenerado com sucesso!");
 		},
 	});
 
@@ -241,6 +265,13 @@ function EditStudentPage() {
 			form.setFieldValue("grade", studentData.student.grade);
 			form.setFieldValue("status", studentData.student.status);
 			form.setFieldValue("notes", studentData.student.notes || "");
+			// Parse date of birth
+			if (studentData.student.dateOfBirth) {
+				const [year, month, day] = studentData.student.dateOfBirth
+					.split("-")
+					.map(Number);
+				setDateOfBirth(new Date(year, month - 1, day));
+			}
 		}
 	}, [studentData, form.setFieldValue]);
 
@@ -289,10 +320,10 @@ function EditStudentPage() {
 			queryClient.invalidateQueries({
 				queryKey: ["studentForAdmin", studentId],
 			});
-			alert("Documento enviado com sucesso!");
+			toast.success("Documento adicionado com sucesso!");
 		} catch (error) {
 			console.error("Upload error:", error);
-			alert("Erro ao enviar documento. Tente novamente.");
+			toast.error("Erro ao fazer upload do documento. Tente novamente.");
 		} finally {
 			setIsUploading(false);
 		}
@@ -365,10 +396,10 @@ function EditStudentPage() {
 				<div className="container mx-auto px-4 py-4">
 					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-4">
-							<Button variant="ghost" size="sm" asChild>
+							<Button variant="ghost" size="icon" asChild>
 								<Link to="/admin">
-									<ArrowLeft className="h-4 w-4 mr-2" />
-									Voltar
+									<ArrowLeft className="size-4" />
+									<span className="sr-only">Voltar</span>
 								</Link>
 							</Button>
 							<div>
@@ -417,15 +448,27 @@ function EditStudentPage() {
 
 								<form.Field name="dateOfBirth">
 									{(field) => (
-										<div className="space-y-2">
-											<Label htmlFor={field.name}>Data de Nascimento</Label>
-											<Input
-												id={field.name}
-												type="date"
-												value={field.state.value}
-												onChange={(e) => field.handleChange(e.target.value)}
-											/>
-										</div>
+										<DatePickerWithLabel
+											id={field.name}
+											label="Data de Nascimento"
+											value={dateOfBirth}
+											onChange={(date) => {
+												setDateOfBirth(date);
+												// Convert to YYYY-MM-DD format for form
+												if (date) {
+													const year = date.getFullYear();
+													const month = String(date.getMonth() + 1).padStart(
+														2,
+														"0",
+													);
+													const day = String(date.getDate()).padStart(2, "0");
+													field.handleChange(`${year}-${month}-${day}`);
+												} else {
+													field.handleChange("");
+												}
+											}}
+											placeholder="Selecione a data"
+										/>
 									)}
 								</form.Field>
 
@@ -483,9 +526,11 @@ function EditStudentPage() {
 									)}
 								</form.Field>
 
-								<Button type="submit" className="w-full">
-									Salvar Alterações
-								</Button>
+								<div className="flex justify-end pt-2">
+									<Button type="submit" className="w-full sm:w-auto">
+										Salvar Alterações
+									</Button>
+								</div>
 							</form>
 						</CardContent>
 					</Card>
@@ -528,13 +573,15 @@ function EditStudentPage() {
 									</button>
 								))}
 							</div>
-							<Button
-								onClick={() => form.handleSubmit()}
-								className="w-full mt-4"
-								variant="outline"
-							>
-								Salvar Tipos de Inteligência
-							</Button>
+							<div className="flex justify-end pt-2 mt-4">
+								<Button
+									onClick={() => form.handleSubmit()}
+									className="w-full sm:w-auto"
+									variant="outline"
+								>
+									Salvar Tipos de Inteligência
+								</Button>
+							</div>
 						</CardContent>
 					</Card>
 
@@ -551,34 +598,74 @@ function EditStudentPage() {
 						</CardHeader>
 						<CardContent className="space-y-4">
 							{accessCode ? (
-								<div className="p-4 bg-primary/10 rounded-lg">
-									<p className="text-sm text-muted-foreground mb-2">
-										Novo código gerado:
-									</p>
-									<p className="text-2xl font-mono font-bold text-center tracking-wider">
-										{accessCode}
-									</p>
-									<p className="text-xs text-muted-foreground mt-2 text-center">
-										Compartilhe este código com o aluno. Ele não será exibido
-										novamente.
-									</p>
+								<div className="p-4 bg-primary/10 rounded-lg space-y-3">
+									<div className="flex items-start justify-between gap-2">
+										<div className="flex-1">
+											<p className="text-sm text-muted-foreground mb-2">
+												Código de acesso atual:
+											</p>
+											<p className="text-2xl font-mono font-bold text-center tracking-wider">
+												{accessCode}
+											</p>
+											<p className="text-xs text-muted-foreground text-center mt-2">
+												Compartilhe este código com o aluno/responsável para
+												acesso ao sistema
+											</p>
+										</div>
+										<div className="flex gap-1">
+											<Button
+												onClick={() => {
+													const codeWithoutDash = accessCode.replace(/-/g, "");
+													navigator.clipboard.writeText(codeWithoutDash);
+													toast.success(
+														"Código copiado para a área de transferência!",
+													);
+												}}
+												variant="ghost"
+												size="icon"
+												className="h-8 w-8"
+												title="Copiar código"
+											>
+												<Copy className="h-4 w-4" />
+											</Button>
+											<Button
+												onClick={() => regenerateCodeMutation.mutate()}
+												variant="ghost"
+												size="icon"
+												className="h-8 w-8"
+												disabled={regenerateCodeMutation.isPending}
+												title="Gerar novo código"
+											>
+												<Key className="h-4 w-4" />
+											</Button>
+										</div>
+									</div>
 								</div>
 							) : (
-								<p className="text-sm text-muted-foreground">
-									O código atual está armazenado de forma segura e
-									criptografada. Você pode gerar um novo código se necessário.
-								</p>
+								<>
+									<div className="p-4 bg-muted/50 rounded-lg border-2 border-dashed">
+										<p className="text-sm text-muted-foreground text-center">
+											Nenhum código de acesso disponível no momento.
+										</p>
+										<p className="text-sm text-muted-foreground text-center mt-2">
+											Clique no botão abaixo para gerar um código de acesso para
+											este aluno.
+										</p>
+									</div>
+									<div className="flex justify-end">
+										<Button
+											onClick={() => regenerateCodeMutation.mutate()}
+											className="w-full sm:w-auto"
+											disabled={regenerateCodeMutation.isPending}
+										>
+											<Key className="h-4 w-4 mr-2" />
+											{regenerateCodeMutation.isPending
+												? "Gerando..."
+												: "Gerar Código de Acesso"}
+										</Button>
+									</div>
+								</>
 							)}
-							<Button
-								onClick={() => regenerateCodeMutation.mutate()}
-								variant="outline"
-								className="w-full"
-								disabled={regenerateCodeMutation.isPending}
-							>
-								{regenerateCodeMutation.isPending
-									? "Gerando..."
-									: "Gerar Novo Código"}
-							</Button>
 						</CardContent>
 					</Card>
 
@@ -632,183 +719,189 @@ function EditStudentPage() {
 								/>
 							</div>
 
-							<Button
-								onClick={handleFileUpload}
-								disabled={!selectedFile || isUploading}
-								className="w-full"
-							>
-								{isUploading ? "Enviando..." : "Enviar Documento"}
-							</Button>
+							<div className="flex justify-end">
+								<Button
+									onClick={handleFileUpload}
+									disabled={!selectedFile || isUploading}
+									className="w-full sm:w-auto"
+								>
+									{isUploading ? "Enviando..." : "Enviar Documento"}
+								</Button>
+							</div>
 						</CardContent>
 					</Card>
 				</div>
 
 				{/* Documents Section */}
-				<Card className="mt-6">
-					<CardHeader>
-						<CardTitle className="flex items-center gap-2">
-							<FileText className="h-5 w-5" />
-							Documentos do Aluno
-						</CardTitle>
-						<CardDescription>
-							Gerencie os documentos PDF do aluno
-						</CardDescription>
-					</CardHeader>
-					<CardContent className="space-y-4">
-						{/* Current Document */}
-						{currentDocument && (
-							<div className="border rounded-lg p-4">
-								<div className="flex items-start justify-between gap-4">
-									<div className="flex items-start gap-3 flex-1">
-										<FileText className="h-5 w-5 text-primary mt-1" />
-										<div className="flex-1 min-w-0">
-											<div className="flex items-center gap-2 mb-1">
-												<p className="font-medium">
-													{currentDocument.fileName}
+				<div className="mt-6 lg:col-span-2">
+					<Card>
+						<CardHeader>
+							<CardTitle className="flex items-center gap-2">
+								<FileText className="h-5 w-5" />
+								Documentos do Aluno
+							</CardTitle>
+							<CardDescription>
+								Gerencie os documentos PDF do aluno
+							</CardDescription>
+						</CardHeader>
+						<CardContent className="space-y-4">
+							{/* Current Document */}
+							{currentDocument && (
+								<div className="border rounded-lg p-4">
+									<div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+										<div className="flex items-start gap-3 flex-1 min-w-0">
+											<FileText className="h-5 w-5 text-primary mt-1" />
+											<div className="flex-1 min-w-0">
+												<div className="flex items-center gap-2 mb-1">
+													<p className="font-medium">
+														{currentDocument.fileName}
+													</p>
+													<Badge variant="default" className="gap-1">
+														<CheckCircle2 className="h-3 w-3" />
+														Atual
+													</Badge>
+												</div>
+												<p className="text-sm text-muted-foreground">
+													{formatFileSize(currentDocument.fileSize)} •{" "}
+													{formatDate(currentDocument.uploadDate)}
 												</p>
-												<Badge variant="default" className="gap-1">
-													<CheckCircle2 className="h-3 w-3" />
-													Atual
-												</Badge>
+												<p className="text-xs text-muted-foreground mt-1">
+													Enviado por: {currentDocument.uploadedBy}
+												</p>
+												{currentDocument.notes && (
+													<p className="text-sm mt-2 text-muted-foreground italic">
+														{currentDocument.notes}
+													</p>
+												)}
 											</div>
-											<p className="text-sm text-muted-foreground">
-												{formatFileSize(currentDocument.fileSize)} •{" "}
-												{formatDate(currentDocument.uploadDate)}
-											</p>
-											<p className="text-xs text-muted-foreground mt-1">
-												Enviado por: {currentDocument.uploadedBy}
-											</p>
-											{currentDocument.notes && (
-												<p className="text-sm mt-2 text-muted-foreground italic">
-													{currentDocument.notes}
-												</p>
-											)}
 										</div>
-									</div>
-									<div className="flex items-center gap-2">
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={async () => {
-												const url = await getDocumentUrl({
-													data: { storageId: currentDocument.storageId },
-												});
-												if (url) window.open(url, "_blank");
-											}}
-										>
-											<Download className="h-4 w-4" />
-										</Button>
-										<Button
-											variant="destructive"
-											size="sm"
-											onClick={() => {
-												if (
-													confirm(
-														"Tem certeza que deseja excluir este documento?",
-													)
-												) {
-													deleteDocMutation.mutate(currentDocument._id);
-												}
-											}}
-										>
-											<Trash2 className="h-4 w-4" />
-										</Button>
+										<div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={async () => {
+													const url = await getDocumentUrl({
+														data: { storageId: currentDocument.storageId },
+													});
+													if (url) window.open(url, "_blank");
+												}}
+											>
+												<Download className="h-4 w-4" />
+											</Button>
+											<Button
+												variant="destructive"
+												size="sm"
+												onClick={() => {
+													if (
+														confirm(
+															"Tem certeza que deseja excluir este documento?",
+														)
+													) {
+														deleteDocMutation.mutate(currentDocument._id);
+													}
+												}}
+											>
+												<Trash2 className="h-4 w-4" />
+											</Button>
+										</div>
 									</div>
 								</div>
-							</div>
-						)}
+							)}
 
-						{/* Previous Documents */}
-						{previousDocuments.length > 0 && (
-							<Accordion type="single" collapsible>
-								<AccordionItem value="previous-docs">
-									<AccordionTrigger>
-										<div className="flex items-center gap-2">
-											<Clock className="h-4 w-4" />
-											Versões Anteriores ({previousDocuments.length})
-										</div>
-									</AccordionTrigger>
-									<AccordionContent>
-										<div className="space-y-3 pt-2">
-											{previousDocuments.map((doc) => (
-												<div
-													key={doc._id}
-													className="border rounded-lg p-3 bg-muted/50"
-												>
-													<div className="flex items-start justify-between gap-4">
-														<div className="flex items-start gap-3 flex-1">
-															<FileText className="h-4 w-4 text-muted-foreground mt-1" />
-															<div className="flex-1 min-w-0">
-																<p className="font-medium text-sm">
-																	{doc.fileName}
-																</p>
-																<p className="text-xs text-muted-foreground">
-																	{formatFileSize(doc.fileSize)} •{" "}
-																	{formatDate(doc.uploadDate)}
-																</p>
-																<p className="text-xs text-muted-foreground">
-																	Por: {doc.uploadedBy}
-																</p>
-																{doc.notes && (
-																	<p className="text-xs mt-1 text-muted-foreground italic">
-																		{doc.notes}
+							{/* Previous Documents */}
+							{previousDocuments.length > 0 && (
+								<Accordion type="single" collapsible>
+									<AccordionItem value="previous-docs">
+										<AccordionTrigger>
+											<div className="flex items-center gap-2">
+												<Clock className="h-4 w-4" />
+												Versões Anteriores ({previousDocuments.length})
+											</div>
+										</AccordionTrigger>
+										<AccordionContent>
+											<div className="space-y-3 pt-2">
+												{previousDocuments.map((doc) => (
+													<div
+														key={doc._id}
+														className="border rounded-lg p-3 bg-muted/50"
+													>
+														<div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+															<div className="flex items-start gap-3 flex-1 min-w-0">
+																<FileText className="h-4 w-4 text-muted-foreground mt-1" />
+																<div className="flex-1 min-w-0">
+																	<p className="font-medium text-sm">
+																		{doc.fileName}
 																	</p>
-																)}
+																	<p className="text-xs text-muted-foreground">
+																		{formatFileSize(doc.fileSize)} •{" "}
+																		{formatDate(doc.uploadDate)}
+																	</p>
+																	<p className="text-xs text-muted-foreground">
+																		Por: {doc.uploadedBy}
+																	</p>
+																	{doc.notes && (
+																		<p className="text-xs mt-1 text-muted-foreground italic">
+																			{doc.notes}
+																		</p>
+																	)}
+																</div>
+															</div>
+															<div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
+																<Button
+																	variant="outline"
+																	size="sm"
+																	onClick={() =>
+																		setCurrentDocMutation.mutate(doc._id)
+																	}
+																>
+																	Definir como Atual
+																</Button>
+																<Button
+																	variant="outline"
+																	size="sm"
+																	onClick={async () => {
+																		const url = await getDocumentUrl({
+																			data: { storageId: doc.storageId },
+																		});
+																		if (url) window.open(url, "_blank");
+																	}}
+																>
+																	<Download className="h-4 w-4" />
+																</Button>
+																<Button
+																	variant="ghost"
+																	size="sm"
+																	onClick={() => {
+																		if (
+																			confirm(
+																				"Excluir esta versão do documento?",
+																			)
+																		) {
+																			deleteDocMutation.mutate(doc._id);
+																		}
+																	}}
+																>
+																	<Trash2 className="h-4 w-4" />
+																</Button>
 															</div>
 														</div>
-														<div className="flex items-center gap-2">
-															<Button
-																variant="outline"
-																size="sm"
-																onClick={() =>
-																	setCurrentDocMutation.mutate(doc._id)
-																}
-															>
-																Definir como Atual
-															</Button>
-															<Button
-																variant="outline"
-																size="sm"
-																onClick={async () => {
-																	const url = await getDocumentUrl({
-																		data: { storageId: doc.storageId },
-																	});
-																	if (url) window.open(url, "_blank");
-																}}
-															>
-																<Download className="h-4 w-4" />
-															</Button>
-															<Button
-																variant="ghost"
-																size="sm"
-																onClick={() => {
-																	if (
-																		confirm("Excluir esta versão do documento?")
-																	) {
-																		deleteDocMutation.mutate(doc._id);
-																	}
-																}}
-															>
-																<Trash2 className="h-4 w-4" />
-															</Button>
-														</div>
 													</div>
-												</div>
-											))}
-										</div>
-									</AccordionContent>
-								</AccordionItem>
-							</Accordion>
-						)}
+												))}
+											</div>
+										</AccordionContent>
+									</AccordionItem>
+								</Accordion>
+							)}
 
-						{!currentDocument && previousDocuments.length === 0 && (
-							<div className="text-center py-8 text-muted-foreground">
-								<FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
-								<p>Nenhum documento enviado ainda.</p>
-							</div>
-						)}
-					</CardContent>
-				</Card>
+							{!currentDocument && previousDocuments.length === 0 && (
+								<div className="text-center py-8 text-muted-foreground">
+									<FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+									<p>Nenhum documento enviado ainda.</p>
+								</div>
+							)}
+						</CardContent>
+					</Card>
+				</div>
 			</main>
 		</div>
 	);

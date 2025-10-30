@@ -1,10 +1,13 @@
 /**
- * Cryptographic utilities for LUPAH parent access codes using Bun's native password hashing
+ * Cryptographic utilities for LUPAH parent access codes
  *
  * This module provides functions for:
  * - Generating secure random access codes
- * - Hashing access codes with Bun's native Argon2id
- * - Validating access codes against stored hashes
+ * - Validating access code formats
+ * - Normalizing access codes
+ *
+ * Note: Actual hashing/verification operations are in cryptoActions.ts
+ * which runs in Node.js runtime.
  */
 
 /**
@@ -15,13 +18,13 @@
  */
 function generateRandomString(
   length: number,
-  charset: string = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+  charset: string = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789"
 ): string {
-  // Remove ambiguous characters (0, O, I, 1, etc.) for better readability
+  // Remove ambiguous characters (0, O, I, 1, l, etc.) for better readability
   const chars = charset.split("");
   let result = "";
 
-  // Use crypto.randomBytes equivalent for better randomness
+  // Use crypto.getRandomValues for cryptographically secure randomness
   const randomValues = new Uint8Array(length);
   crypto.getRandomValues(randomValues);
 
@@ -41,45 +44,6 @@ export function generateAccessCode(): string {
   const part1 = generateRandomString(4);
   const part2 = generateRandomString(4);
   return `${part1}-${part2}`;
-}
-
-/**
- * Hashes an access code using Bun's native Argon2id implementation
- * @param accessCode - The access code to hash
- * @returns Hash string in PHC format
- */
-export async function hashAccessCode(accessCode: string): Promise<string> {
-  // Normalize the code (remove hyphens, uppercase)
-  const normalized = accessCode.replace(/-/g, "").toUpperCase();
-
-  // Use Bun's native password hashing with Argon2id
-  const hash = await Bun.password.hash(normalized, {
-    algorithm: "argon2id",
-    memoryCost: 65536, // 64 MiB (default, good balance)
-    timeCost: 3, // 3 iterations (default, suitable for production)
-  });
-
-  return hash;
-}
-
-/**
- * Validates an access code against a stored hash using Bun's native verify
- * @param accessCode - The access code to validate
- * @param storedHash - The stored hash to compare against
- * @returns True if the access code is valid
- */
-export async function validateAccessCode(
-  accessCode: string,
-  storedHash: string
-): Promise<boolean> {
-  // Normalize the code (remove hyphens, uppercase)
-  const normalized = accessCode.replace(/-/g, "").toUpperCase();
-
-  // Use Bun's native password verification
-  // This automatically detects the algorithm from the hash format
-  const isValid = await Bun.password.verify(normalized, storedHash);
-
-  return isValid;
 }
 
 /**
