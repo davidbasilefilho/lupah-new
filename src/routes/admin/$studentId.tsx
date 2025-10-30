@@ -34,6 +34,7 @@ import {
 import { DatePickerWithLabel } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
 	Select,
 	SelectContent,
@@ -403,7 +404,7 @@ function EditStudentPage() {
 								</Link>
 							</Button>
 							<div>
-								<h1 className="text-2xl font-bold">Editar Aluno</h1>
+								<h1 className="text-2xl font-bold">Editar aluno</h1>
 								<p className="text-sm text-muted-foreground">
 									{studentData.student.name}
 								</p>
@@ -418,9 +419,9 @@ function EditStudentPage() {
 				<div className="grid gap-6 lg:grid-cols-2">
 					{/* Student Information */}
 					<Card>
-						<CardHeader>
-							<CardTitle>Informações do Aluno</CardTitle>
-							<CardDescription>
+						<CardHeader className="pb-3">
+							<CardTitle className="text-base">Informações do Aluno</CardTitle>
+							<CardDescription className="text-xs">
 								Atualize os dados cadastrais do aluno
 							</CardDescription>
 						</CardHeader>
@@ -430,104 +431,146 @@ function EditStudentPage() {
 									e.preventDefault();
 									form.handleSubmit();
 								}}
-								className="space-y-4"
+								className="flex flex-col gap-3"
 							>
-								<form.Field name="name">
-									{(field) => (
-										<div className="space-y-2">
-											<Label htmlFor={field.name}>Nome Completo</Label>
-											<Input
-												id={field.name}
-												value={field.state.value}
-												onChange={(e) => field.handleChange(e.target.value)}
-												placeholder="Nome do aluno"
-											/>
-										</div>
-									)}
-								</form.Field>
+								<div className="flex flex-wrap gap-3">
+									<form.Field name="name">
+										{(field) => (
+											<div className="space-y-2 grow">
+												<Label htmlFor={field.name}>Nome Completo</Label>
+												<Input
+													id={field.name}
+													value={field.state.value}
+													onChange={(e) => field.handleChange(e.target.value)}
+													placeholder="Nome do aluno"
+												/>
+											</div>
+										)}
+									</form.Field>
 
-								<form.Field name="dateOfBirth">
-									{(field) => (
-										<DatePickerWithLabel
-											id={field.name}
-											label="Data de Nascimento"
-											value={dateOfBirth}
-											onChange={(date) => {
-												setDateOfBirth(date);
-												// Convert to YYYY-MM-DD format for form
-												if (date) {
-													const year = date.getFullYear();
-													const month = String(date.getMonth() + 1).padStart(
-														2,
-														"0",
-													);
-													const day = String(date.getDate()).padStart(2, "0");
-													field.handleChange(`${year}-${month}-${day}`);
-												} else {
-													field.handleChange("");
-												}
-											}}
-											placeholder="Selecione a data"
-										/>
-									)}
-								</form.Field>
+									<form.Field name="dateOfBirth">
+										{(field) => (
+											<div className="w-fit">
+												<DatePickerWithLabel
+													id={field.name}
+													label="Data de Nascimento"
+													value={dateOfBirth}
+													onChange={(date) => {
+														setDateOfBirth(date);
+														// Convert to YYYY-MM-DD format for form
+														if (date) {
+															const year = date.getFullYear();
+															const month = String(
+																date.getMonth() + 1,
+															).padStart(2, "0");
+															const day = String(date.getDate()).padStart(
+																2,
+																"0",
+															);
+															field.handleChange(`${year}-${month}-${day}`);
+														} else {
+															field.handleChange("");
+														}
+													}}
+													placeholder="Selecione a data"
+												/>
+											</div>
+										)}
+									</form.Field>
 
-								<form.Field name="grade">
-									{(field) => (
-										<div className="space-y-2">
-											<Label htmlFor={field.name}>Série</Label>
-											<Input
-												id={field.name}
-												value={field.state.value}
-												onChange={(e) => field.handleChange(e.target.value)}
-												placeholder="Ex: 5º ano"
-											/>
-										</div>
-									)}
-								</form.Field>
+									<form.Field
+										name="grade"
+										validators={{
+											onChange: ({ value }) =>
+												!value ? "Série/Ano é obrigatório" : undefined,
+										}}
+									>
+										{(field) => (
+											<div className="space-y-2 grow">
+												<Label htmlFor={field.name}>
+													Série/ano escolar{" "}
+													<span className="text-destructive">*</span>
+												</Label>
+												<Select
+													value={field.state.value}
+													onValueChange={(value) => {
+														// Only update if value is not empty or if current value is also empty
+														if (value || !field.state.value) {
+															field.handleChange(value);
+														}
+													}}
+												>
+													<SelectTrigger id={field.name} className="w-full">
+														<SelectValue placeholder="Selecione a série" />
+													</SelectTrigger>
+													<SelectContent>
+														{Array.from({ length: 9 }, (_, i) => (
+															<SelectItem key={i} value={`${i + 1}º ano`}>
+																{i + 1}º ano
+															</SelectItem>
+														))}
+														{Array.from({ length: 3 }, (_, i) => (
+															<SelectItem key={i} value={`${i + 1}ª série EM`}>
+																{i + 1}ª série EM
+															</SelectItem>
+														))}
+													</SelectContent>
+												</Select>
+												{field.state.meta.errors.length > 0 && (
+													<p className="text-sm text-destructive">
+														{field.state.meta.errors[0]}
+													</p>
+												)}
+											</div>
+										)}
+									</form.Field>
 
-								<form.Field name="status">
-									{(field) => (
-										<div className="space-y-2">
-											<Label htmlFor={field.name}>Status</Label>
-											<Select
-												value={field.state.value}
-												onValueChange={(value) =>
-													field.handleChange(
-														value as "active" | "inactive" | "graduated",
-													)
-												}
-											>
-												<SelectTrigger>
-													<SelectValue placeholder="Selecione o status" />
-												</SelectTrigger>
-												<SelectContent>
-													<SelectItem value="active">Ativo</SelectItem>
-													<SelectItem value="inactive">Inativo</SelectItem>
-													<SelectItem value="graduated">Formado</SelectItem>
-												</SelectContent>
-											</Select>
-										</div>
-									)}
-								</form.Field>
+									<form.Field name="status">
+										{(field) => (
+											<div className="space-y-2 w-fit">
+												<Label htmlFor={field.name}>Status</Label>
+												<Select
+													value={field.state.value}
+													onValueChange={(value) =>
+														field.handleChange(
+															value as "active" | "inactive" | "graduated",
+														)
+													}
+												>
+													<SelectTrigger>
+														<SelectValue placeholder="Selecione o status" />
+													</SelectTrigger>
+													<SelectContent>
+														<SelectItem value="active">Ativo</SelectItem>
+														<SelectItem value="inactive">Inativo</SelectItem>
+														<SelectItem value="graduated">Formado</SelectItem>
+													</SelectContent>
+												</Select>
+											</div>
+										)}
+									</form.Field>
+								</div>
 
 								<form.Field name="notes">
 									{(field) => (
-										<div className="space-y-2">
-											<Label htmlFor={field.name}>Observações</Label>
+										<div className="space-y-1.5">
+											<Label htmlFor={field.name} className="text-sm">
+												Observações
+											</Label>
 											<Textarea
 												id={field.name}
 												value={field.state.value || ""}
 												onChange={(e) => field.handleChange(e.target.value)}
 												placeholder="Observações sobre o aluno"
-												rows={3}
+												rows={2}
+												className="text-sm"
 											/>
 										</div>
 									)}
 								</form.Field>
 
-								<div className="flex justify-end pt-2">
-									<Button type="submit" className="w-full sm:w-auto">
+								<div className="flex justify-end">
+									<Button type="submit" size="sm" className="w-full sm:w-auto">
 										Salvar Alterações
 									</Button>
 								</div>
@@ -537,45 +580,50 @@ function EditStudentPage() {
 
 					{/* Intelligence Types */}
 					<Card>
-						<CardHeader>
-							<CardTitle className="flex items-center gap-2">
-								<Brain className="h-5 w-5" />
+						<CardHeader className="pb-3">
+							<CardTitle className="flex items-center gap-2 text-base">
+								<Brain className="h-4 w-4" />
 								Tipos de Inteligência
 							</CardTitle>
-							<CardDescription>
+							<CardDescription className="text-xs">
 								Selecione os tipos de inteligência identificados neste aluno
 							</CardDescription>
 						</CardHeader>
 						<CardContent>
-							<div className="space-y-2 max-h-96 overflow-y-auto">
-								{INTELLIGENCE_TYPES.map((type) => (
-									<button
-										type="button"
-										key={type.value}
-										onClick={() => toggleIntelligence(type.value)}
-										className={`p-3 border rounded-lg cursor-pointer transition-colors text-left w-full ${
-											selectedIntelligences.includes(type.value)
-												? "bg-primary/10 border-primary"
-												: "hover:bg-muted"
-										}`}
-									>
-										<div className="flex items-start justify-between gap-2">
-											<div className="flex-1">
-												<div className="font-medium text-sm">{type.label}</div>
-												<div className="text-xs text-muted-foreground mt-1">
-													{type.description}
+							<ScrollArea className="h-80 pr-4">
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+									{INTELLIGENCE_TYPES.map((type) => (
+										<button
+											type="button"
+											key={type.value}
+											onClick={() => toggleIntelligence(type.value)}
+											className={`p-2 border rounded-lg cursor-pointer transition-colors text-left w-full ${
+												selectedIntelligences.includes(type.value)
+													? "bg-primary/10 border-primary"
+													: "hover:bg-muted"
+											}`}
+										>
+											<div className="flex items-start justify-between gap-1.5">
+												<div className="flex-1 min-w-0">
+													<div className="font-medium text-xs">
+														{type.label}
+													</div>
+													<div className="text-xs text-muted-foreground mt-0.5">
+														{type.description}
+													</div>
 												</div>
+												{selectedIntelligences.includes(type.value) && (
+													<CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+												)}
 											</div>
-											{selectedIntelligences.includes(type.value) && (
-												<CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-											)}
-										</div>
-									</button>
-								))}
-							</div>
-							<div className="flex justify-end pt-2 mt-4">
+										</button>
+									))}
+								</div>
+							</ScrollArea>
+							<div className="flex justify-end pt-3 mt-3 border-t">
 								<Button
 									onClick={() => form.handleSubmit()}
+									size="sm"
 									className="w-full sm:w-auto"
 									variant="outline"
 								>
@@ -588,31 +636,27 @@ function EditStudentPage() {
 					{/* Access Code */}
 					<Card>
 						<CardHeader>
-							<CardTitle className="flex items-center gap-2">
-								<Key className="h-5 w-5" />
+							<CardTitle className="flex items-center gap-2 text-base">
+								<Key className="h-4 w-4" />
 								Código de Acesso
 							</CardTitle>
-							<CardDescription>
+							<CardDescription className="text-xs">
 								Código que o aluno usa para acessar sua página
 							</CardDescription>
 						</CardHeader>
-						<CardContent className="space-y-4">
+						<CardContent className="space-y-3 flex h-full flex-col">
 							{accessCode ? (
-								<div className="p-4 bg-primary/10 rounded-lg space-y-3">
-									<div className="flex items-start justify-between gap-2">
-										<div className="flex-1">
-											<p className="text-sm text-muted-foreground mb-2">
+								<div className="p-6 bg-primary/10 rounded-lg space-y-2 grow h-fit">
+									<div className="flex justify-between gap-2">
+										<div className="flex-1 min-w-0">
+											<p className="text-xs text-muted-foreground mb-1.5">
 												Código de acesso atual:
 											</p>
-											<p className="text-2xl font-mono font-bold text-center tracking-wider">
+											<p className="text-xl font-mono font-bold pt-2 tracking-wider">
 												{accessCode}
 											</p>
-											<p className="text-xs text-muted-foreground text-center mt-2">
-												Compartilhe este código com o aluno/responsável para
-												acesso ao sistema
-											</p>
 										</div>
-										<div className="flex gap-1">
+										<div className="flex gap-1 shrink-0">
 											<Button
 												onClick={() => {
 													const codeWithoutDash = accessCode.replace(/-/g, "");
@@ -626,7 +670,7 @@ function EditStudentPage() {
 												className="h-8 w-8"
 												title="Copiar código"
 											>
-												<Copy className="h-4 w-4" />
+												<Copy className="h-3.5 w-3.5" />
 											</Button>
 											<Button
 												onClick={() => regenerateCodeMutation.mutate()}
@@ -636,34 +680,33 @@ function EditStudentPage() {
 												disabled={regenerateCodeMutation.isPending}
 												title="Gerar novo código"
 											>
-												<Key className="h-4 w-4" />
+												<Key className="h-3.5 w-3.5" />
 											</Button>
 										</div>
 									</div>
+									<p className="text-xs text-muted-foreground">
+										Compartilhe este código com o aluno/responsável
+									</p>
 								</div>
 							) : (
 								<>
-									<div className="p-4 bg-muted/50 rounded-lg border-2 border-dashed">
-										<p className="text-sm text-muted-foreground text-center">
-											Nenhum código de acesso disponível no momento.
-										</p>
-										<p className="text-sm text-muted-foreground text-center mt-2">
-											Clique no botão abaixo para gerar um código de acesso para
-											este aluno.
+									<div className="p-6 bg-muted/50 rounded-lg border-2 border-dashed mt-auto">
+										<p className="text-xs text-muted-foreground text-center">
+											Por motivos de segurança, a exibição do código está
+											oculta. Gere um novo código abaixo caso necessário.
 										</p>
 									</div>
-									<div className="flex justify-end">
-										<Button
-											onClick={() => regenerateCodeMutation.mutate()}
-											className="w-full sm:w-auto"
-											disabled={regenerateCodeMutation.isPending}
-										>
-											<Key className="h-4 w-4 mr-2" />
-											{regenerateCodeMutation.isPending
-												? "Gerando..."
-												: "Gerar Código de Acesso"}
-										</Button>
-									</div>
+									<Button
+										onClick={() => regenerateCodeMutation.mutate()}
+										className="ml-auto mt-auto"
+										size="sm"
+										disabled={regenerateCodeMutation.isPending}
+									>
+										<Key className="size-3.5" />
+										{regenerateCodeMutation.isPending
+											? "Gerando..."
+											: "Gerar Código de Acesso"}
+									</Button>
 								</>
 							)}
 						</CardContent>
@@ -672,16 +715,16 @@ function EditStudentPage() {
 					{/* Document Upload */}
 					<Card>
 						<CardHeader>
-							<CardTitle className="flex items-center gap-2">
-								<Upload className="h-5 w-5" />
+							<CardTitle className="flex items-center gap-1 text-base">
+								<Upload className="h-4 w-4" />
 								Upload de Documento PDF
 							</CardTitle>
-							<CardDescription>
+							<CardDescription className="text-xs">
 								Envie o documento do aluno (apenas PDF)
 							</CardDescription>
 						</CardHeader>
-						<CardContent className="space-y-4">
-							<div className="space-y-2">
+						<CardContent className="flex flex-col gap-3">
+							<div className="space-y-3 shrink-0">
 								<Label htmlFor={pdfFileId}>Selecionar Arquivo PDF</Label>
 								<Input
 									id={pdfFileId}
@@ -693,11 +736,11 @@ function EditStudentPage() {
 							</div>
 
 							{selectedFile && (
-								<div className="p-3 bg-muted rounded-lg">
+								<div className="p-2 bg-muted rounded-lg shrink-0">
 									<div className="flex items-center gap-2">
-										<FileText className="h-4 w-4" />
+										<FileText className="h-3.5 w-3.5 shrink-0" />
 										<div className="flex-1 min-w-0">
-											<p className="text-sm font-medium truncate">
+											<p className="text-xs font-medium truncate">
 												{selectedFile.name}
 											</p>
 											<p className="text-xs text-muted-foreground">
@@ -708,7 +751,7 @@ function EditStudentPage() {
 								</div>
 							)}
 
-							<div className="space-y-2">
+							<div className="space-y-1.5 grow">
 								<Label htmlFor={uploadNotesId}>Observações (opcional)</Label>
 								<Textarea
 									id={uploadNotesId}
@@ -716,18 +759,18 @@ function EditStudentPage() {
 									onChange={(e) => setUploadNotes(e.target.value)}
 									placeholder="Adicione observações sobre este documento"
 									rows={2}
+									className="text-sm"
 								/>
 							</div>
 
-							<div className="flex justify-end">
-								<Button
-									onClick={handleFileUpload}
-									disabled={!selectedFile || isUploading}
-									className="w-full sm:w-auto"
-								>
-									{isUploading ? "Enviando..." : "Enviar Documento"}
-								</Button>
-							</div>
+							<Button
+								onClick={handleFileUpload}
+								disabled={!selectedFile || isUploading}
+								className="ml-auto"
+								size="sm"
+							>
+								{isUploading ? "Enviando..." : "Enviar Documento"}
+							</Button>
 						</CardContent>
 					</Card>
 				</div>

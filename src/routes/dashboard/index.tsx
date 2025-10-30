@@ -265,12 +265,12 @@ function DashboardPage() {
 										</div>
 									</div>
 
-									<div className="flex flex-col sm:flex-row gap-2">
+									<div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
 										{documentUrl && (
 											<>
 												<Button
 													asChild
-													className="flex-1"
+													className="sm:w-auto"
 													onClick={() => window.open(documentUrl, "_blank")}
 												>
 													<a
@@ -282,7 +282,7 @@ function DashboardPage() {
 														Visualizar
 													</a>
 												</Button>
-												<Button asChild variant="outline" className="flex-1">
+												<Button asChild variant="outline" className="sm:w-auto">
 													<a href={documentUrl} download>
 														<Download className="h-4 w-4 mr-2" />
 														Baixar

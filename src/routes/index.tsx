@@ -86,12 +86,10 @@ function HomePage() {
 					sessionStorage.setItem("studentId", result.student._id);
 					window.location.href = "/dashboard";
 				} else {
-					setErrorMessage(result.error || "Código inválido. Tente novamente.");
+					setErrorMessage("Erro: código de acesso inválido.");
 				}
 			} catch (error: unknown) {
-				setErrorMessage(
-					error instanceof Error ? error.message : "Erro ao validar código.",
-				);
+				setErrorMessage("Erro: código de acesso inválido.");
 			} finally {
 				setIsSubmitting(false);
 			}
@@ -199,233 +197,268 @@ function HomePage() {
 	const id = useId();
 
 	return (
-		<main
-			id={id}
-			className="w-full max-w-full sm:max-w-lg md:max-w-5xl lg:max-w-340 mx-auto md:pb-12 md:pt-16 px-4 pb-8 pt-10 lg:px-8"
-		>
-			<section
-				className="relative flex flex-wrap md:flex-nowrap justify-between items-center md:items-stretch gap-6 pb-8 md:pb-12 md:grid-cols-2 md:gap-16"
-				aria-labelledby={heroHeadingId}
+		<div>
+			<div
+				aria-hidden
+				className="pointer-events-none absolute top-0 left-0 right-0 h-[1000px] -z-10 overflow-hidden"
 			>
+				{/* Vibrant Orange Circle - Top Left */}
 				<motion.div
-					aria-hidden
-					className="pointer-events-none absolute inset-y-0 left-1/2 -translate-x-1/2 w-screen -z-10 overflow-hidden blur-2xl md:blur-3xl"
-					initial={{ opacity: 0 }}
-					animate={{ opacity: 1 }}
-					transition={{ duration: 0.6, ease: "easeOut" }}
+					className="absolute -top-128 -left-60 size-[1000px] rounded-full opacity-40"
 					style={{
 						background:
-							"radial-gradient(60% 50% at 0% 0%, hsl(var(--chart-3)) 0%, transparent 60%), radial-gradient(60% 50% at 100% 0%, hsl(var(--chart-2)) 0%, transparent 60%), radial-gradient(80% 60% at 50% 100%, hsl(var(--chart-4)) 0%, transparent 60%)",
-						maskImage:
-							"linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0.15) 30%, rgba(0,0,0,0))",
-						WebkitMaskImage:
-							"linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0.15) 30%, rgba(0,0,0,0))",
+							"radial-gradient(circle, hsl(25, 95%, 60%) 0%, transparent 65%)",
+						filter: "blur(100px)",
 					}}
+					initial={{ opacity: 0, scale: 0.8 }}
+					animate={{ opacity: 0.4, scale: 1 }}
+					transition={{ duration: 1, ease: "easeOut" }}
 				/>
 
+				{/* Bright Magenta Circle - Top Center */}
 				<motion.div
-					className="flex flex-col gap-2"
-					initial={{ opacity: 0, y: 12 }}
-					animate={{ opacity: 1, y: 0 }}
-					transition={{ duration: 0.5, ease: "easeOut" }}
-				>
-					<Badge
-						variant={"tinted"}
-						className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm"
-					>
-						<span
-							className="inline-flex h-2 w-2 rounded-full bg-primary"
-							aria-hidden
-						/>
-						Prefeitura da Estância Turística de Itu • NAPE
-					</Badge>
+					className="absolute -top-140 left-1/2 -translate-x-1/2 size-[1100px] rounded-full opacity-35"
+					style={{
+						background:
+							"radial-gradient(circle, hsl(320, 90%, 65%) 0%, transparent 65%)",
+						filter: "blur(110px)",
+					}}
+					initial={{ opacity: 0, scale: 0.8 }}
+					animate={{ opacity: 0.35, scale: 1 }}
+					transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 }}
+				/>
 
-					<h1
-						id={heroHeadingId}
-						className="text-balance text-4xl font-bold leading-tight tracking-tight sm:text-5xl md:text-6xl"
-					>
-						Projeto LUPAH
-					</h1>
-
-					<p className="text-lg mb-1 leading-relaxed text-muted-foreground sm:text-lg">
-						Lúdico Universo da Pessoa com Altas Habilidades. Um programa de
-						orientação para crianças com altas habilidades em suas dificuldades
-						sociais, emocionais e acadêmicas, em Itu, SP.
-					</p>
-
-					<div className="text-md text-foreground">
-						Plataforma para a padronização da comunicação de orientações do(a)
-						orientador(a) aos pais.
-					</div>
-
-					<div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
-						<Badge size={"lg"} className="inline-flex items-center gap-2">
-							<Shield className="size-4 text-primary" aria-hidden /> Acesso
-							seguro
-						</Badge>
-						<Badge size={"lg"} className="inline-flex items-center gap-2">
-							<Users className="size-4 text-primary" aria-hidden /> Orientações
-							aos pais
-						</Badge>
-						<Badge size={"lg"} className="inline-flex items-center gap-2">
-							<CheckCircle2 className="size-4 text-primary" aria-hidden />{" "}
-							Comunicação padronizada
-						</Badge>
-					</div>
-				</motion.div>
-
+				{/* Electric Blue Circle - Top Right */}
 				<motion.div
-					className="relative"
-					initial={{ opacity: 0, y: 12 }}
-					animate={{ opacity: 1, y: 0 }}
-					transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
+					className="absolute -top-140 -right-60 size-[1000px] rounded-full opacity-30"
+					style={{
+						background:
+							"radial-gradient(circle, hsl(200, 95%, 60%) 0%, transparent 65%)",
+						filter: "blur(95px)",
+					}}
+					initial={{ opacity: 0, scale: 0.8 }}
+					animate={{ opacity: 0.38, scale: 1 }}
+					transition={{ duration: 1.1, ease: "easeOut", delay: 0.4 }}
+				/>
+			</div>
+			<main
+				id={id}
+				className="w-full max-w-full sm:max-w-lg md:max-w-5xl lg:max-w-340 mx-auto md:pb-12 md:pt-16 px-4 pb-8 pt-10 lg:px-8 relative overflow-hidden"
+			>
+				<section
+					className="relative flex flex-wrap md:flex-nowrap justify-between items-center md:items-stretch gap-6 pb-8 md:pb-12 md:grid-cols-2 md:gap-16"
+					aria-labelledby={heroHeadingId}
 				>
-					<Card className="p-0 max-w-sm w-full shadow-none border-none">
-						<MagicCard gradientSize={375} className="p-0 w-fit">
-							<CardHeader className="p-4 border-b border-border w-full">
-								<CardTitle className="text-xl">
-									<span className="inline-flex items-center gap-2">
-										<Lock className="size-5" aria-hidden />
-										Acesso do Estudante
-									</span>
-								</CardTitle>
-								<CardDescription>
-									Insira o código de acesso de 8 caracteres enviado pela
-									coordenação.
-								</CardDescription>
-							</CardHeader>
-							<CardContent className="p-4 grow w-full">
-								<form
-									id={formId}
-									onSubmit={(e) => {
-										e.preventDefault();
-										e.stopPropagation();
-										form.handleSubmit();
-									}}
-									aria-describedby={`${formId}-hint`}
-									aria-label="Formulário de acesso do estudante"
-								>
-									<form.Field
-										name="code"
-										validators={{
-											onChange: validators.code,
+					<motion.div
+						className="flex flex-col gap-2"
+						initial={{ opacity: 0, y: 12 }}
+						animate={{ opacity: 1, y: 0 }}
+						transition={{ duration: 0.5, ease: "easeOut" }}
+					>
+						<Badge
+							variant={"tinted"}
+							className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm"
+						>
+							<span
+								className="inline-flex h-2 w-2 rounded-full bg-primary"
+								aria-hidden
+							/>
+							Prefeitura da Estância Turística de Itu • NAPE
+						</Badge>
+
+						<h1
+							id={heroHeadingId}
+							className="text-balance text-4xl font-bold leading-tight tracking-tight sm:text-5xl md:text-6xl"
+						>
+							Projeto LUPAH
+						</h1>
+
+						<p className="text-lg mb-1 leading-relaxed text-muted-foreground sm:text-lg">
+							Lúdico Universo da Pessoa com Altas Habilidades. Um programa de
+							orientação para crianças com altas habilidades em suas
+							dificuldades sociais, emocionais e acadêmicas, em Itu, SP.
+						</p>
+
+						<div className="text-md text-foreground">
+							Plataforma para a padronização da comunicação de orientações do(a)
+							orientador(a) aos pais.
+						</div>
+
+						<div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+							<Badge size={"lg"} className="inline-flex items-center gap-2">
+								<Shield className="size-4 text-primary" aria-hidden /> Acesso
+								seguro
+							</Badge>
+							<Badge size={"lg"} className="inline-flex items-center gap-2">
+								<Users className="size-4 text-primary" aria-hidden />{" "}
+								Orientações aos pais
+							</Badge>
+							<Badge size={"lg"} className="inline-flex items-center gap-2">
+								<CheckCircle2 className="size-4 text-primary" aria-hidden />{" "}
+								Comunicação padronizada
+							</Badge>
+						</div>
+					</motion.div>
+
+					<motion.div
+						className="relative"
+						initial={{ opacity: 0, y: 12 }}
+						animate={{ opacity: 1, y: 0 }}
+						transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
+					>
+						<Card className="p-0 max-w-sm w-full shadow-none border-none">
+							<MagicCard gradientSize={375} className="p-0 w-fit">
+								<CardHeader className="p-4 border-b border-border w-full">
+									<CardTitle className="text-xl">
+										<span className="inline-flex items-center gap-2">
+											<Lock className="size-5" aria-hidden />
+											Acesso do Estudante
+										</span>
+									</CardTitle>
+									<CardDescription>
+										Insira o código de acesso de 8 caracteres enviado pela
+										coordenação.
+									</CardDescription>
+								</CardHeader>
+								<CardContent className="p-4 grow w-full">
+									<form
+										id={formId}
+										onSubmit={(e) => {
+											e.preventDefault();
+											e.stopPropagation();
+											form.handleSubmit();
 										}}
+										aria-describedby={`${formId}-hint`}
+										aria-label="Formulário de acesso do estudante"
 									>
-										{(field) => (
-											<div className="space-y-2">
-												<Label htmlFor={otpId}>Código de Acesso</Label>
-												<InputOTP
-													id={otpId}
-													maxLength={codeLength}
-													value={field.state.value ?? ""}
-													onChange={(val) => field.handleChange(val ?? "")}
-													onBlur={field.handleBlur}
-													pattern="[A-Za-z0-9]*"
-													containerClassName="justify-start"
-													aria-required="true"
-													autoFocus
-												>
-													<InputOTPGroup className="gap-0.5">
-														{Array.from({ length: codeLength / 2 }, (_, i) => (
-															<InputOTPSlot
-																key={`first-${i}`}
-																index={i}
-																aria-label={`Dígito ${i + 1}`}
-															/>
-														))}
-													</InputOTPGroup>
-													<InputOTPSeparator
-														className="mx-0 sm:mx-1 md:mx-2 text-muted-foreground"
-														aria-hidden
-													/>
-													<InputOTPGroup className="gap-0.5">
-														{Array.from({ length: codeLength / 2 }, (_, i) => (
-															<InputOTPSlot
-																key={`second-${i + codeLength / 2}`}
-																index={i + codeLength / 2}
-																aria-label={`Dígito ${i + 1 + codeLength / 2}`}
-															/>
-														))}
-													</InputOTPGroup>
-												</InputOTP>
-												{field.state.meta.isTouched &&
-													field.state.meta.errors.length > 0 && (
+										<form.Field
+											name="code"
+											validators={{
+												onChange: validators.code,
+											}}
+										>
+											{(field) => (
+												<div className="space-y-2">
+													<Label htmlFor={otpId}>Código de Acesso</Label>
+													<InputOTP
+														id={otpId}
+														maxLength={codeLength}
+														value={field.state.value ?? ""}
+														onChange={(val) => field.handleChange(val ?? "")}
+														onBlur={field.handleBlur}
+														pattern="[A-Za-z0-9]*"
+														containerClassName="justify-start"
+														aria-required="true"
+														autoFocus
+													>
+														<InputOTPGroup className="gap-0.5">
+															{Array.from(
+																{ length: codeLength / 2 },
+																(_, i) => (
+																	<InputOTPSlot
+																		key={`first-${i}`}
+																		index={i}
+																		aria-label={`Dígito ${i + 1}`}
+																	/>
+																),
+															)}
+														</InputOTPGroup>
+														<InputOTPSeparator
+															className="mx-0 sm:mx-1 md:mx-2 text-muted-foreground"
+															aria-hidden
+														/>
+														<InputOTPGroup className="gap-0.5">
+															{Array.from(
+																{ length: codeLength / 2 },
+																(_, i) => (
+																	<InputOTPSlot
+																		key={`second-${i + codeLength / 2}`}
+																		index={i + codeLength / 2}
+																		aria-label={`Dígito ${i + 1 + codeLength / 2}`}
+																	/>
+																),
+															)}
+														</InputOTPGroup>
+													</InputOTP>
+													{field.state.meta.isTouched &&
+														field.state.meta.errors.length > 0 && (
+															<p className="text-sm font-medium text-destructive">
+																{field.state.meta.errors[0]?.message}
+															</p>
+														)}
+													{errorMessage && (
 														<p className="text-sm font-medium text-destructive">
-															{field.state.meta.errors[0]?.message}
+															{errorMessage}
 														</p>
 													)}
-												{errorMessage && (
-													<p className="text-sm font-medium text-destructive">
-														{errorMessage}
-													</p>
-												)}
-											</div>
+												</div>
+											)}
+										</form.Field>
+									</form>
+								</CardContent>
+								<CardFooter className="p-4 flex-col sm:flex-row items-start sm:items-center gap-4 border-t border-border">
+									<p
+										id={`${formId}-hint`}
+										className="text-muted-foreground text-xs flex-1"
+									>
+										Seus dados são protegidos. Ao acessar, você concorda em
+										manter o sigilo das informações.
+									</p>
+									<form.Subscribe
+										selector={(state) => [state.canSubmit, state.isSubmitting]}
+									>
+										{([canSubmit, isSubmitting]) => (
+											<Button
+												type="submit"
+												form={formId}
+												className="w-full sm:w-auto"
+												disabled={!canSubmit || isSubmitting}
+												aria-disabled={isSubmitting}
+											>
+												{isSubmitting ? "Acessando..." : "Acessar"}
+											</Button>
 										)}
-									</form.Field>
-								</form>
-							</CardContent>
-							<CardFooter className="p-4 flex-col sm:flex-row items-start sm:items-center gap-4 border-t border-border">
-								<p
-									id={`${formId}-hint`}
-									className="text-muted-foreground text-xs flex-1"
-								>
-									Seus dados são protegidos. Ao acessar, você concorda em manter
-									o sigilo das informações.
-								</p>
-								<form.Subscribe
-									selector={(state) => [state.canSubmit, state.isSubmitting]}
-								>
-									{([canSubmit, isSubmitting]) => (
-										<Button
-											type="submit"
-											form={formId}
-											className="w-full sm:w-auto"
-											disabled={!canSubmit || isSubmitting}
-											aria-disabled={isSubmitting}
-										>
-											{isSubmitting ? "Validando…" : "Acessar Minha Página"}
-										</Button>
-									)}
-								</form.Subscribe>
-							</CardFooter>
-						</MagicCard>
-					</Card>
-				</motion.div>
-			</section>
+									</form.Subscribe>
+								</CardFooter>
+							</MagicCard>
+						</Card>
+					</motion.div>
+				</section>
 
-			<section aria-labelledby={intelligencesHeadingId}>
-				<div className="flex items-end justify-between">
-					<div>
-						<h2
-							id={intelligencesHeadingId}
-							className="text-2xl font-semibold tracking-tight"
-						>
-							Tipos de Inteligência
-						</h2>
-						<p className="text-muted-foreground mt-1 text-sm">
-							Diferentes perfis cognitivos e habilidades que podem orientar
-							intervenções e trilhas pedagógicas.
-						</p>
+				<section aria-labelledby={intelligencesHeadingId}>
+					<div className="flex items-end justify-between">
+						<div>
+							<h2
+								id={intelligencesHeadingId}
+								className="text-2xl font-semibold tracking-tight"
+							>
+								Tipos de Inteligência
+							</h2>
+							<p className="text-muted-foreground mt-1 text-sm">
+								Diferentes perfis cognitivos e habilidades que podem orientar
+								intervenções e trilhas pedagógicas.
+							</p>
+						</div>
 					</div>
-				</div>
 
-				<div className="mt-6">
-					<BentoGrid className="grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-auto h-max sm:h-256">
-						{intelligenceTypes.map((item) => (
-							<BentoCard
-								key={item.name}
-								name={item.name}
-								description={item.description}
-								Icon={item.Icon}
-								className={item.className}
-								href={item.href}
-								cta={item.cta}
-								background={<div className="absolute inset-0 -z-10" />}
-							/>
-						))}
-					</BentoGrid>
-				</div>
-			</section>
-		</main>
+					<div className="mt-6">
+						<BentoGrid className="grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-auto h-max sm:h-256">
+							{intelligenceTypes.map((item) => (
+								<BentoCard
+									key={item.name}
+									name={item.name}
+									description={item.description}
+									Icon={item.Icon}
+									className={item.className}
+									href={item.href}
+									cta={item.cta}
+									background={<div className="absolute inset-0 -z-10" />}
+								/>
+							))}
+						</BentoGrid>
+					</div>
+				</section>
+			</main>
+		</div>
 	);
 }

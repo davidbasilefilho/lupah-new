@@ -154,7 +154,7 @@ function NewStudentPage() {
 								<div className="flex items-center gap-2 text-green-600 dark:text-green-400">
 									<CheckCircle2 className="h-5 w-5" />
 									<CardTitle className="text-xl">
-										Aluno Cadastrado com Sucesso!
+										Aluno cadastrado com Sucesso!
 									</CardTitle>
 								</div>
 								<CardDescription>
@@ -205,7 +205,7 @@ function NewStudentPage() {
 												})
 											}
 										>
-											Ver Detalhes do Aluno
+											Ver detalhes do aluno
 										</Button>
 									)}
 									<div className="flex flex-col sm:flex-row gap-3">
@@ -215,7 +215,7 @@ function NewStudentPage() {
 											className="flex-1"
 										>
 											<ArrowLeft className="h-4 w-4 mr-2" />
-											Voltar ao Dashboard
+											Voltar à dashboard
 										</Button>
 										<Button
 											onClick={() => {
@@ -229,7 +229,7 @@ function NewStudentPage() {
 											className="flex-1"
 										>
 											<UserPlus className="h-4 w-4 mr-2" />
-											Cadastrar Outro Aluno
+											Cadastrar outro aluno
 										</Button>
 									</div>
 								</div>
@@ -243,7 +243,7 @@ function NewStudentPage() {
 							<CardHeader className="pb-4">
 								<CardTitle className="flex items-center gap-2 text-xl">
 									<UserPlus className="h-5 w-5" />
-									Informações do Aluno
+									Informações do aluno
 								</CardTitle>
 								<CardDescription>
 									Preencha os dados básicos do aluno. Um código de acesso será
@@ -257,9 +257,9 @@ function NewStudentPage() {
 										e.stopPropagation();
 										form.handleSubmit();
 									}}
-									className="space-y-6"
+									className="flex flex-col gap-4"
 								>
-									<div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
+									<div className="flex flex-wrap gap-4">
 										{/* Name */}
 										<form.Field
 											name="name"
@@ -269,7 +269,7 @@ function NewStudentPage() {
 											}}
 										>
 											{(field) => (
-												<div className="space-y-2">
+												<div className="space-y-2 grow">
 													<Label htmlFor={nameId}>
 														Nome completo{" "}
 														<span className="text-destructive">*</span>
@@ -306,30 +306,33 @@ function NewStudentPage() {
 											}}
 										>
 											{(field) => (
-												<DatePickerWithLabel
-													id={dateOfBirthId}
-													label="Data de nascimento"
-													value={selectedDate}
-													onChange={(date) => {
-														setSelectedDate(date);
-														if (date) {
-															const year = date.getFullYear();
-															const month = String(
-																date.getMonth() + 1,
-															).padStart(2, "0");
-															const day = String(date.getDate()).padStart(
-																2,
-																"0",
-															);
-															field.handleChange(`${year}-${month}-${day}`);
-														} else {
-															field.handleChange("");
-														}
-													}}
-													placeholder="Selecione a data"
-													required
-													error={field.state.meta.errors[0]}
-												/>
+												<div className="w-fit">
+													<DatePickerWithLabel
+														id={dateOfBirthId}
+														label="Data de nascimento"
+														className="w-full"
+														value={selectedDate}
+														onChange={(date) => {
+															setSelectedDate(date);
+															if (date) {
+																const year = date.getFullYear();
+																const month = String(
+																	date.getMonth() + 1,
+																).padStart(2, "0");
+																const day = String(date.getDate()).padStart(
+																	2,
+																	"0",
+																);
+																field.handleChange(`${year}-${month}-${day}`);
+															} else {
+																field.handleChange("");
+															}
+														}}
+														placeholder="Selecione a data"
+														required
+														error={field.state.meta.errors[0]}
+													/>
+												</div>
 											)}
 										</form.Field>
 
@@ -342,7 +345,7 @@ function NewStudentPage() {
 											}}
 										>
 											{(field) => (
-												<div className="space-y-2">
+												<div className="space-y-2 w-fit">
 													<Label htmlFor={gradeId}>
 														Série/ano escolar{" "}
 														<span className="text-destructive">*</span>
@@ -378,29 +381,27 @@ function NewStudentPage() {
 												</div>
 											)}
 										</form.Field>
-
-										{/* Notes - spans both columns */}
-										<form.Field name="notes">
-											{(field) => (
-												<div className="space-y-2 sm:col-span-1 lg:col-span-2">
-													<Label htmlFor={notesId}>
-														Observações (opcional)
-													</Label>
-													<Textarea
-														id={notesId}
-														placeholder="Informações adicionais sobre o aluno..."
-														value={field.state.value}
-														onChange={(e) => field.handleChange(e.target.value)}
-														onBlur={field.handleBlur}
-														rows={3}
-													/>
-												</div>
-											)}
-										</form.Field>
 									</div>
 
+									{/* Notes */}
+									<form.Field name="notes">
+										{(field) => (
+											<div className="space-y-2 grow">
+												<Label htmlFor={notesId}>Observações (opcional)</Label>
+												<Textarea
+													id={notesId}
+													placeholder="Informações adicionais sobre o aluno..."
+													value={field.state.value}
+													onChange={(e) => field.handleChange(e.target.value)}
+													onBlur={field.handleBlur}
+													rows={3}
+												/>
+											</div>
+										)}
+									</form.Field>
+
 									{/* Info Box */}
-									<div className="bg-muted/50 border border-border rounded-lg p-4">
+									<div className="bg-muted/50 border border-border rounded-lg p-4 mt-4">
 										<div className="flex gap-3">
 											<Key className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
 											<div className="flex-1">
@@ -417,7 +418,7 @@ function NewStudentPage() {
 									</div>
 
 									{/* Actions */}
-									<div className="flex flex-col sm:flex-row justify-end gap-3 pt-2">
+									<div className="flex flex-col sm:flex-row justify-end gap-3 pt-2 flex-shrink-0">
 										<Button
 											type="button"
 											variant="outline"

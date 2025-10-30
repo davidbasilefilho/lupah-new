@@ -3,8 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
 	Activity,
-	Award,
-	CheckCircle2,
 	FileText,
 	FolderOpen,
 	GraduationCap,
@@ -12,7 +10,6 @@ import {
 	Users,
 	XCircle,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -21,14 +18,11 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { DataTable } from "@/components/data-table/data-table";
 import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
+	studentsColumns,
+	type StudentRow,
+} from "@/components/data-table/students-columns";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { getAllStudents, getDashboardStats } from "@/server/convex";
 
@@ -104,34 +98,6 @@ function AdminDashboard() {
 		);
 	}
 
-	const getStatusBadge = (status: string) => {
-		switch (status) {
-			case "active":
-				return (
-					<Badge variant="default" className="gap-1">
-						<CheckCircle2 className="h-3 w-3" />
-						Ativo
-					</Badge>
-				);
-			case "inactive":
-				return (
-					<Badge variant="secondary" className="gap-1">
-						<XCircle className="h-3 w-3" />
-						Inativo
-					</Badge>
-				);
-			case "graduated":
-				return (
-					<Badge variant="outline" className="gap-1">
-						<Award className="h-3 w-3" />
-						Formado
-					</Badge>
-				);
-			default:
-				return <Badge variant="secondary">{status}</Badge>;
-		}
-	};
-
 	return (
 		<div className="min-h-screen bg-background">
 			<main className="container mx-auto px-4 py-8">
@@ -143,7 +109,7 @@ function AdminDashboard() {
 				</div>
 				{/* Statistics Cards */}
 				{stats && (
-					<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+					<div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2 mb-8">
 						<Card>
 							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
 								<CardTitle className="text-sm font-medium">
@@ -155,38 +121,6 @@ function AdminDashboard() {
 								<div className="text-2xl font-bold">{stats.totalStudents}</div>
 								<p className="text-xs text-muted-foreground mt-1">
 									{stats.activeStudents} ativos
-								</p>
-							</CardContent>
-						</Card>
-
-						<Card>
-							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-								<CardTitle className="text-sm font-medium">
-									Relatórios
-								</CardTitle>
-								<FileText className="h-4 w-4 text-muted-foreground" />
-							</CardHeader>
-							<CardContent>
-								<div className="text-2xl font-bold">{stats.totalReports}</div>
-								<p className="text-xs text-muted-foreground mt-1">
-									Relatórios de progresso
-								</p>
-							</CardContent>
-						</Card>
-
-						<Card>
-							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-								<CardTitle className="text-sm font-medium">
-									Atividades
-								</CardTitle>
-								<Activity className="h-4 w-4 text-muted-foreground" />
-							</CardHeader>
-							<CardContent>
-								<div className="text-2xl font-bold">
-									{stats.totalActivities}
-								</div>
-								<p className="text-xs text-muted-foreground mt-1">
-									Atividades registradas
 								</p>
 							</CardContent>
 						</Card>
@@ -228,58 +162,12 @@ function AdminDashboard() {
 					</CardHeader>
 					<CardContent>
 						{students && students.length > 0 ? (
-							<div className="rounded-md border">
-								<Table>
-									<TableHeader>
-										<TableRow>
-											<TableHead>Nome</TableHead>
-											<TableHead>Série</TableHead>
-											<TableHead>Status</TableHead>
-											<TableHead className="text-center">Docs</TableHead>
-											<TableHead className="text-center">Relatórios</TableHead>
-											<TableHead className="text-center">Atividades</TableHead>
-											<TableHead className="text-right">Ações</TableHead>
-										</TableRow>
-									</TableHeader>
-									<TableBody>
-										{students.map((student) => (
-											<TableRow key={student._id}>
-												<TableCell className="font-medium">
-													{student.name}
-												</TableCell>
-												<TableCell>{student.grade}</TableCell>
-												<TableCell>{getStatusBadge(student.status)}</TableCell>
-												<TableCell className="text-center">
-													<Badge variant="outline">
-														{student.documentCount}
-													</Badge>
-												</TableCell>
-												<TableCell className="text-center">
-													<Badge variant="outline">
-														{student.reportsCount}
-													</Badge>
-												</TableCell>
-												<TableCell className="text-center">
-													<Badge variant="outline">
-														{student.activitiesCount}
-													</Badge>
-												</TableCell>
-												<TableCell className="text-right">
-													<Button
-														variant="ghost"
-														size="sm"
-														onClick={() => {
-															window.location.href = `/admin/${student._id}`;
-														}}
-													>
-														Editar
-													</Button>
-												</TableCell>
-											</TableRow>
-										))}
-									</TableBody>
-								</Table>
-							</div>
+							<DataTable
+								columns={studentsColumns}
+								data={students as StudentRow[]}
+								searchKey="name"
+								searchPlaceholder="Filtrar por nome..."
+							/>
 						) : (
 							<div className="text-center py-12">
 								<GraduationCap className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
