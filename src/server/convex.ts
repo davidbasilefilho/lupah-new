@@ -144,7 +144,8 @@ export const updateStudent = createServerFn({ method: "POST" })
 			{
 				studentId: studentId as Id<"students">,
 				...updates,
-			} as any, // biome-ignore lint/suspicious/noExplicitAny: Convex mutation types are complex
+				// biome-ignore lint/suspicious/noExplicitAny: Convex mutation types are complex
+			} as any,
 		);
 		return result;
 	});

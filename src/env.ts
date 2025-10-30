@@ -3,8 +3,15 @@ import { z } from "zod/v4";
 
 export const env = createEnv({
 	server: {
-		CLERK_SECRET_KEY: z.string().min(1),
-		CONVEX_DEPLOYMENT: z.string().min(1),
+		CLERK_SECRET_KEY: z
+			.string()
+			.min(1, { message: "CLERK_SECRET_KEY is required" }),
+		CONVEX_DEPLOYMENT: z
+			.string()
+			.min(1, { message: "CONVEX_DEPLOYMENT is required" }),
+		CLERK_ISSUER_URL: z.url({
+			message: "CLERK_ISSUER_URL must be a valid URL",
+		}),
 	},
 
 	/**
@@ -14,8 +21,12 @@ export const env = createEnv({
 	clientPrefix: "VITE_",
 
 	client: {
-		VITE_CLERK_PUBLISHABLE_KEY: z.string().min(1),
-		VITE_CONVEX_URL: z.string().min(1),
+		VITE_CLERK_PUBLISHABLE_KEY: z.string().min(1, {
+			message: "VITE_CLERK_PUBLISHABLE_KEY is required",
+		}),
+		VITE_CONVEX_URL: z.string().min(1, {
+			message: "VITE_CONVEX_URL is required",
+		}),
 	},
 
 	/**
